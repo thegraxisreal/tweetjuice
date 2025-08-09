@@ -80,6 +80,22 @@
     .toolbar{display:flex; align-items:center; justify-content:space-between; padding:12px 22px 18px}
     .icons{display:none}
     .iconbtn{display:none}
+
+    /* Edit dropdown menu */
+    .menu{position:absolute; right:22px; top:100%; margin-top:8px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); width:260px; padding:12px; z-index:50; display:none}
+    .menu.show{display:block; animation:fade .15s var(--ease-bounce) both}
+    .menu .row{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 6px}
+    .menu .hr{height:1px; background:var(--border-soft); margin:6px 0}
+    .seg{display:inline-flex; background:#fff; border:1px solid var(--black); border-radius:10px; overflow:hidden}
+    .seg button{appearance:none; background:#fff; color:var(--black); border:none; padding:8px 10px; cursor:pointer; font-weight:600}
+    .seg button.active{background:var(--black); color:#fff}
+    .menu .action{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--black); background:#fff; color:var(--black); border-radius:10px; padding:10px 12px; cursor:pointer; transition:transform .12s var(--ease-bounce)}
+    .menu .action:hover{transform:translateY(-1px)}
+    .badge.hot{font-size:.75rem; color:var(--muted); border:1px solid var(--border); padding:2px 6px; border-radius:999px}
+
+    /* Apply glow */
+    .apply-glow{animation:glow 650ms ease-out}
+    @keyframes glow{0%{background:rgba(255,247,159,.65)} 100%{background:transparent}}
     
     /* Icon button (monochrome) */
     .btn-icon{background:#fff; border:1px solid var(--black); width:40px; height:40px; border-radius:12px; display:grid; place-items:center; cursor:pointer; color:var(--black); transition:transform .15s var(--ease-bounce), background .15s var(--ease-bounce), color .15s var(--ease-bounce)}
@@ -110,16 +126,7 @@
     /* Simplified toolbar */
     .bar{display:flex; align-items:center; justify-content:space-between; padding-top:4px}
 
-    /* Diff pane */
-    #diffPane{margin-top:16px; display:none}
-    .diff-grid{display:grid; gap:16px}
-    .bubble{background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px}
-    .tweet-row{display:flex; align-items:flex-start; gap:12px}
-    .tweet-row .avatar{display:none}
-    .tweet-meta{font-weight:600; color:var(--fg); font-size:0.9rem}
-    .badge{display:none}
-
-    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    /* Diff pane removed in minimalist mode */
 
 
 
@@ -251,42 +258,39 @@
 
         <div class="toolbar">
           <div></div>
-          <div class="bar">
+          <div class="bar" style="position:relative">
             <div id="charWrap"><span id="charCount" class="counter" aria-live="polite">0/280</span></div>
-            <div style="display:flex; gap:8px;">
-              <button id="actRephrase" class="btn secondary edit" aria-label="Edit your text">Edit</button>
+            <div style="display:flex; gap:8px; position:relative">
+              <button id="actRephrase" class="btn secondary edit" aria-haspopup="true" aria-expanded="false" aria-controls="editMenu" aria-label="Edit your text">Edit</button>
               <button id="composeBtn" class="btn primary" aria-label="Compose tweet with AI">Compose</button>
+              <div id="editMenu" class="menu" role="menu" aria-label="Edit tools">
+                <div class="row" style="justify-content:center">
+                  <div class="seg" role="group" aria-label="Case">
+                    <button type="button" id="caseUpper" class="active">UP</button>
+                    <button type="button" id="caseLower">low</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <button type="button" id="doHook" class="action" role="menuitem">
+                    <span>Add hook</span>
+                    <span class="badge hot">hot</span>
+                  </button>
+                </div>
+                <div class="hr"></div>
+                <div class="row">
+                  <button type="button" id="doRephrase" class="action" role="menuitem">Rephrase</button>
+                </div>
+                <div class="row" style="align-items:flex-start; flex-direction:column; gap:8px">
+                  <button type="button" id="doCustom" class="action" role="menuitem">Custom</button>
+                  <textarea id="customNote" placeholder="What should the AI do?" style="width:100%; min-height:64px; border:1px solid var(--border); border-radius:10px; padding:8px; font:inherit"></textarea>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="card-body" style="padding-top:0">
-          <div id="diffPane" class="fade" aria-live="polite">
-            <div class="diff-grid">
-              <div class="bubble">
-                <div class="tweet-row">
-                  <img class="avatar" id="diffAvatar1" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23f5f5f5'/></svg>" alt="Avatar" />
-                  <div>
-                     <div class="tweet-meta"><span class="at" aria-hidden="true">@</span><span id="diffHandle1"></span> • Before</div>
-                    <div id="diffBefore"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="bubble">
-                <div class="tweet-row">
-                  <img class="avatar" id="diffAvatar2" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23f5f5f5'/></svg>" alt="Avatar" />
-                  <div>
-                     <div class="tweet-meta"><span class="at" aria-hidden="true">@</span><span id="diffHandle2"></span> • After <span class="badge" title="AI enhanced">⚡ AI punch‑up</span></div>
-                    <div id="diffAfter"></div>
-                    <div class="actions">
-                      <button id="copyAfter" class="btn secondary" aria-label="Copy After text">Copy</button>
-                      <button id="applyAfter" class="btn primary" aria-label="Apply After to composer">Apply</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          
 
           <div id="errorBanner" class="banner" role="alert">Couldn’t reach AI, please try again.</div>
         </div>
@@ -529,11 +533,10 @@
     function showDemo(on){ demoModeChip.style.display = on ? 'inline-flex' : 'none'; }
 
     // API callers
-    async function apiRewrite({text, preset, keepTone, lowercaseHook, customNote}){
+    async function apiRewrite({ text, mode, lowercase, customNote }){
       try{
         setBusy(true); showError(false);
-        const payload = { text, preset, keepTone, lowercaseHook };
-        if(preset==='custom' && customNote){ payload.customNote = customNote; }
+        const payload = { text, mode, lowercase, customNote };
         const res = await fetch('/api/rewrite', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
         const data = await res.json();
         if(data && data.mock) showDemo(true);
@@ -553,30 +556,81 @@
     }
 
     // Diff pane update
-    function updateDiff(before, after){
-      diffBefore.textContent = before;
-      diffAfter.textContent = after;
-      diffPane.style.display = 'block';
-    }
-
-    // Compose flow
-    async function runCompose({keepTone}){
-      const idea = composerInput.value.trim();
-      if(!idea) return;
-      setPresetFromUI();
-      const payload = { text: idea, preset: currentPreset, keepTone: !!keepTone, lowercaseHook: false };
-      const data = await apiRewrite(payload);
-      if(!data) return;
-      const after = data.after || (data.result && data.result.after) || '';
-      updateDiff(idea, after);
-      if(after) composerInput.value = after;
+    function animateApply(newText){
+      composerInput.classList.remove('apply-glow');
+      // trigger reflow to restart animation
+      void composerInput.offsetWidth;
+      composerInput.value = newText;
+      composerInput.classList.add('apply-glow');
       updateCounter();
     }
 
-    composeBtn.addEventListener('click', ()=>runCompose({keepTone:false}));
+    // Compose flow
+    // Compose flow now prompts the user for a topic
+    async function runComposeFlow(){
+      const topic = prompt('What would you like to post about today?');
+      if(!topic) return;
+      try{
+        setBusy(true);
+        const res = await fetch('/api/compose', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic })});
+        const data = await res.json();
+        const after = (data && data.after) || '';
+        if(after){ animateApply(after); }
+      }catch{ showError(true); }
+      finally{ setBusy(false); }
+    }
 
-    // Edit actions
-    actRephrase.addEventListener('click', async ()=>{ await runCompose({keepTone:true}); });
+    composeBtn.addEventListener('click', runComposeFlow);
+
+    // Edit menu state
+    const editMenu = document.getElementById('editMenu');
+    const caseUpper = document.getElementById('caseUpper');
+    const caseLower = document.getElementById('caseLower');
+    const doHook = document.getElementById('doHook');
+    const doRephrase = document.getElementById('doRephrase');
+    const doCustom = document.getElementById('doCustom');
+    const customNote = document.getElementById('customNote');
+
+    let isLowercase = false;
+    let addHook = false;
+
+    function setCase(lower){
+      isLowercase = !!lower;
+      caseUpper.classList.toggle('active', !isLowercase);
+      caseLower.classList.toggle('active', isLowercase);
+    }
+    setCase(false);
+
+    caseUpper.addEventListener('click', ()=>setCase(false));
+    caseLower.addEventListener('click', ()=>setCase(true));
+
+    doHook.addEventListener('click', ()=> runEdit('hook'));
+
+    function toggleEditMenu(){
+      const open = editMenu.classList.toggle('show');
+      actRephrase.setAttribute('aria-expanded', String(open));
+    }
+    actRephrase.addEventListener('click', (e)=>{ e.stopPropagation(); toggleEditMenu(); });
+    document.addEventListener('click', (e)=>{
+      if(editMenu.classList.contains('show')){
+        const within = editMenu.contains(e.target) || e.target === actRephrase;
+        if(!within) toggleEditMenu();
+      }
+    });
+
+    async function runEdit(mode){
+      const idea = composerInput.value.trim();
+      if(!idea) return;
+      const payload = { text: idea, mode, lowercase: isLowercase, customNote: customNote.value || '' };
+      const data = await apiRewrite(payload);
+      const after = (data && data.after) || '';
+      if(after){ animateApply(after); }
+      editMenu.classList.remove('show');
+      actRephrase.setAttribute('aria-expanded', 'false');
+    }
+
+    doRephrase.addEventListener('click', ()=> runEdit('rephrase'));
+    doCustom.addEventListener('click', ()=> runEdit('custom'));
 
     // Copy / Apply
     copyAfter.addEventListener('click', async ()=>{
