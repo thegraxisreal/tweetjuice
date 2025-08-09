@@ -633,11 +633,15 @@
     doCustom.addEventListener('click', ()=> runEdit('custom'));
 
     // Copy / Apply
-    copyAfter.addEventListener('click', async ()=>{
-      const text = diffAfter.textContent || '';
-      try{ await navigator.clipboard.writeText(text); copyAfter.textContent='Copied!'; setTimeout(()=>copyAfter.textContent='Copy', 1000); }catch{}
-    });
-    applyAfter.addEventListener('click', ()=>{ const t = diffAfter.textContent||''; composerInput.value = t; updateCounter(); });
+    if(copyAfter){
+      copyAfter.addEventListener('click', async ()=>{
+        const text = (diffAfter && diffAfter.textContent) || '';
+        try{ await navigator.clipboard.writeText(text); copyAfter.textContent='Copied!'; setTimeout(()=>copyAfter.textContent='Copy', 1000); }catch{}
+      });
+    }
+    if(applyAfter){
+      applyAfter.addEventListener('click', ()=>{ const t = (diffAfter && diffAfter.textContent)||''; composerInput.value = t; updateCounter(); });
+    }
 
 
 
