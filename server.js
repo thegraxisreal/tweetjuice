@@ -1,18 +1,22 @@
-// server.js
-// TweetJuice minimal backend (Render-ready)
+// server.js (ESM)
+// TweetJuice minimal backend (Render-ready, ESM)
 // - Serves /public (your index.html)
 // - OpenAI-only endpoints: /api/rewrite, /api/punchline
 // - Safe mock responses if OPENAI_API_KEY missing
 
-const path = require("path");
-const fs = require("fs");
-const express = require("express");
-const helmet = require("helmet");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const rateLimit = require("express-rate-limit");
+import path from "path";
+import fs from "fs";
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
+import { fileURLToPath } from "url";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -72,7 +76,7 @@ const aiLimiter = rateLimit({
 });
 
 /* ------------------------------- Static files ------------------------------ */
-const publicDir = path.join(process.cwd(), "public");
+const publicDir = path.join(__dirname, "public");
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 if (!fs.existsSync(path.join(publicDir, "index.html"))) {
   fs.writeFileSync(
