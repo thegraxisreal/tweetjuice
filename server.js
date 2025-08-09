@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini"; // adjust if you like
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-nano"; // latest model
 
 const app = express();
 
