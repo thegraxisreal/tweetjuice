@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TweetJuice — Main App</title>
+  <meta name="description" content="Compose punchier X posts with TweetJuice. Smart rewrite and punchline tools built in." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      /* Bright and vibrant palette */
+      --orange:#FF6B35; --yellow:#FFE066; --indigo:#4F46E5; --purple:#8B5CF6;
+      --text:#1F2937; --muted:#6B7280; --white:#FFFFFF; --light:#F8FAFC;
+      --border:#E5E7EB; --border-soft:#F1F5F9;
+      --accent-bg:#FEF3C7; --accent-border:#F59E0B;
+      --success:#10B981; --info:#3B82F6; --warning:#F59E0B;
+      --radius:18px; --radius-sm:12px; --shadow:0 4px 20px rgba(0,0,0,.1);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
+      background:linear-gradient(180deg, var(--indigo) 0%, var(--purple) 50%, #6366F1 100%);
+      background-attachment:fixed;
+    }
+    a{color:inherit; text-decoration:none}
+    .container{max-width:800px; margin:0 auto; padding:0 20px}
+
+    /* Header (match home page) */
+    header{position:sticky; top:0; z-index:60; backdrop-filter:saturate(140%) blur(8px);
+      background:linear-gradient(to bottom, rgba(79,70,229,.95), rgba(139,92,246,.7));
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+    .nav{display:flex; align-items:center; justify-content:space-between; padding:16px 0}
+    .brand{display:flex; align-items:center; gap:12px; color:#fff}
+    .logo{width:40px; height:40px}
+    .wordmark{font-family:Poppins, Inter, sans-serif; font-weight:800; letter-spacing:.3px; font-size:1.25rem}
+    .userchip{display:flex; align-items:center; gap:10px; color:#cbd5e1}
+    .userchip img{width:32px; height:32px; border-radius:999px; border:1px solid rgba(255,255,255,.18)}
+    .userchip .h{color:#fff; font-weight:700}
+
+    /* Layout */
+    main{padding:32px 0 80px}
+    .grid{display:grid; grid-template-columns:300px 1fr; gap:28px; max-width:800px; margin:0 auto}
+    @media (max-width:768px){.grid{grid-template-columns:1fr; gap:20px;}}
+
+    /* Cards — bright and clean */
+    .card{background:linear-gradient(135deg, #ffffff 0%, #fefefe 100%); color:var(--text); border:1px solid var(--border-soft); border-radius:16px; box-shadow:0 4px 20px rgba(79,70,229,.08), 0 1px 4px rgba(0,0,0,.05)}
+    .card h3{font-family:Inter, sans-serif; margin:0 0 6px; font-weight:600; font-size:1.1rem}
+    .card .sub{color:var(--muted); margin:0 0 16px; font-size:0.9rem}
+    .card-body{padding:20px}
+
+    /* Profile card */
+    .profile-row{display:flex; align-items:center; gap:14px}
+    .avatar{width:56px; height:56px; border-radius:50%; background:#f8f9fa; border:2px solid var(--border-soft); object-fit:cover}
+    .avatar-lg{width:48px; height:48px}
+    .handle-line{display:flex; align-items:center; gap:8px; margin-top:12px}
+    .handle-line input{flex:1; background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color:var(--text); border:1px solid var(--border-soft); border-radius:12px; padding:12px 16px; font-size:0.95rem; transition:all 0.2s ease}
+    .handle-line input:focus{outline:2px solid rgba(255,107,53,.4); outline-offset:1px; border-color:var(--orange); background:linear-gradient(135deg, #ffffff 0%, #fefefe 100%); box-shadow:0 0 0 3px rgba(255,107,53,.1)}
+
+    /* Composer — clean and minimal */
+    .composer-card{padding:0}
+    .composer-header{display:flex; align-items:center; justify-content:space-between; padding:20px 20px 0}
+    .compose-row{display:flex; align-items:flex-start; gap:14px; padding:16px 20px}
+    .compose-col{flex:1; border-bottom:1px solid var(--border-soft);}
+    .textarea{width:100%; min-height:140px; resize:vertical; background:transparent; color:var(--text);
+      border:none; border-radius:0; padding:8px 0; line-height:1.6; font-size:1.1rem; font-weight:400}
+    .textarea:focus{outline:none}
+    .textarea::placeholder{color:#9ca3af; font-weight:400}
+
+    .toolbar{display:flex; align-items:center; justify-content:space-between; padding:12px 20px 16px}
+    .icons{display:flex; gap:12px; color:#9ca3af}
+    .iconbtn{background:#fafbfc; border:1px solid var(--border-soft); width:36px; height:36px; border-radius:10px; display:grid; place-items:center; cursor:pointer; transition:all 0.15s ease}
+    .iconbtn:hover{background:#f1f3f4; border-color:#d1d5db}
+    .iconbtn:focus-visible{outline:2px solid rgba(255,127,50,.4); outline-offset:1px}
+    
+    /* Settings button */
+    .btn-icon{background:transparent; border:1px solid var(--border-soft); width:40px; height:40px; border-radius:12px; display:grid; place-items:center; cursor:pointer; color:var(--muted); transition:all 0.2s ease}
+    .btn-icon:hover{background:linear-gradient(135deg, var(--indigo), var(--purple)); color:#fff; border-color:transparent; box-shadow:0 3px 10px rgba(79,70,229,.2)}
+    .btn-icon:focus-visible{outline:2px solid rgba(79,70,229,.4); outline-offset:1px}
+
+    .btn{appearance:none; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-weight:600;
+      background:#1f2937; color:#fff; padding:12px 20px; border-radius:12px; font-size:0.95rem; transition:all 0.15s ease}
+    .btn:hover{background:#374151; transform:translateY(-1px)}
+    .btn[disabled]{opacity:.6; cursor:not-allowed; transform:none}
+    .btn.primary{background:linear-gradient(135deg, var(--orange), var(--yellow)); color:#1F2937; font-weight:700; box-shadow:0 4px 12px rgba(255,107,53,.3)}
+    .btn.primary:hover{background:linear-gradient(135deg, #ff5722, #ffb74d); box-shadow:0 6px 16px rgba(255,107,53,.4); transform:translateY(-2px)}
+    .btn.secondary{background:linear-gradient(135deg, var(--indigo), var(--purple)); color:#ffffff; border:none; box-shadow:0 3px 10px rgba(79,70,229,.2)}
+    .btn.secondary:hover{background:linear-gradient(135deg, #4338ca, #7c3aed); box-shadow:0 5px 14px rgba(79,70,229,.3); transform:translateY(-1px)}
+
+    .chip{display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:20px; border:1px solid var(--border-soft); background:#fafbfc; font-weight:500; font-size:0.85rem}
+    .counter{font-variant-numeric:tabular-nums; font-weight:600; color:#6b7280; font-size:0.9rem}
+    .counter.warn{color:#d97706}
+    .counter.bad{color:#dc2626}
+
+    /* Simplified toolbar */
+    .bar{display:flex; align-items:center; justify-content:space-between; padding-top:4px}
+
+    /* Diff pane */
+    #diffPane{margin-top:16px; display:none}
+    .diff-grid{display:grid; gap:16px}
+    .bubble{background:#fafbfc; border:1px solid var(--border-soft); border-radius:16px; padding:16px}
+    .tweet-row{display:flex; align-items:flex-start; gap:12px}
+    .tweet-meta{font-weight:600; color:#374151; font-size:0.9rem}
+    .badge{display:inline-flex; gap:6px; align-items:center; padding:6px 12px; border-radius:16px; background:linear-gradient(135deg, var(--accent-bg), rgba(255,230,102,.3)); color:#92400e; font-weight:600; font-size:.85rem; border:1px solid var(--accent-border); box-shadow:0 2px 8px rgba(245,158,11,.2)}
+
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+
+
+
+    /* Banner / errors */
+    .banner{display:none; margin-top:12px; padding:12px 16px; border-radius:12px; background:rgba(239,68,68,.06); border:1px solid rgba(239,68,68,.2); color:#991b1b; font-weight:500}
+    .banner.show{display:block}
+
+
+
+    /* Footer (like home) */
+    footer{margin-top:40px; color:#cbd5e1; border-top:1px solid rgba(255,255,255,.06)}
+    footer .links{display:flex; gap:16px; padding:18px 0; flex-wrap:wrap}
+
+    /* Tutorial Overlay */
+    .tutorial-overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; display:none; align-items:center; justify-content:center}
+    .tutorial-overlay.show{display:flex}
+    .tutorial-card{background:#fff; border-radius:20px; max-width:500px; margin:20px; box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    .tutorial-header{padding:24px 24px 0; text-align:center}
+    .tutorial-body{padding:16px 24px 24px}
+    .tutorial-title{font-family:Poppins, Inter, sans-serif; font-weight:800; font-size:1.5rem; color:var(--text); margin:0 0 8px}
+    .tutorial-text{color:var(--muted); line-height:1.6; margin:0 0 20px}
+    .tutorial-actions{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+    .tutorial-step{display:none}
+    .tutorial-step.active{display:block}
+    .tutorial-progress{display:flex; gap:8px; justify-content:center; margin:16px 0}
+    .progress-dot{width:8px; height:8px; border-radius:50%; background:var(--border-soft); transition:all 0.2s ease}
+    .progress-dot.active{background:linear-gradient(135deg, var(--orange), var(--yellow))}
+    
+    /* Settings Modal */
+    .settings-modal{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:90; display:none; align-items:center; justify-content:center}
+    .settings-modal.show{display:flex}
+    .settings-card{background:#fff; border-radius:16px; max-width:400px; margin:20px; box-shadow:0 15px 40px rgba(0,0,0,.2)}
+    .settings-header{padding:20px 20px 0; border-bottom:1px solid var(--border-soft)}
+    .settings-body{padding:20px}
+    .settings-item{margin-bottom:16px}
+    .settings-label{display:block; font-weight:600; color:var(--text); margin-bottom:8px}
+    
+    /* Motion safety */
+    @media (prefers-reduced-motion:no-preference){
+      .fade{animation:fade .2s ease both}
+      @keyframes fade{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+      .btn{transition:all 0.15s ease}
+      .tutorial-overlay{animation:fadeIn .3s ease both}
+      @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="App header">
+      <div class="brand" aria-label="TweetJuice wordmark">
+        <svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="url(#g)"/>
+          <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#FF7F32"/><stop offset="100%" stop-color="#FFD447"/></linearGradient></defs>
+          <path d="M16 36c12 4 22-4 30-16 0 10-6 22-20 24 4 2 9 2 14 0-5 6-12 10-20 10C16 48 14 40 16 36z" fill="#121433"/>
+        </svg>
+        <strong class="wordmark">TweetJuice</strong>
+      </div>
+      <div class="userchip" aria-live="polite">
+        <span>@<span id="handleOut">you</span></span>
+        <img id="avatarImgHeader" src="https://unavatar.io/x/you" alt="Avatar preview" />
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <!-- Left: Profile card -->
+      <section class="card" aria-labelledby="profileTitle">
+        <div class="card-body">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+            <div>
+              <h3 id="profileTitle">Profile</h3>
+              <p class="sub">Set your @handle to preview the avatar.</p>
+            </div>
+            <button id="settingsBtn" class="btn-icon" title="Settings" aria-label="Open settings">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.13a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="profile-row">
+            <img id="avatarImg" class="avatar" src="https://unavatar.io/x/you" alt="Profile avatar" />
+            <div>
+              <div style="font-weight:600; color:#1f2937; margin-bottom:2px;">Display Name</div>
+              <div style="color:#6b7280; font-size:0.9rem;">@<span id="handleOutProfile">you</span></div>
+            </div>
+          </div>
+          <div class="handle-line">
+            <label for="handleInput" class="visually-hidden">Handle</label>
+            <span aria-hidden="true">@</span>
+            <input id="handleInput" type="text" inputmode="twitter" placeholder="yourhandle" aria-label="Twitter handle (without @)" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Center: Composer -->
+      <section class="card composer-card" aria-labelledby="composerTitle">
+        <div class="composer-header">
+          <div>
+            <h3 id="composerTitle">Composer</h3>
+            <p class="sub">Write it once. Let AI make it land.</p>
+          </div>
+          <span id="demoModeChip" class="chip" style="display:none">demo mode</span>
+        </div>
+
+        <div class="compose-row">
+          <img data-avatar class="avatar avatar-lg" src="https://unavatar.io/x/you" alt="Your avatar" />
+          <div class="compose-col" style="padding-right:6px">
+            <textarea id="composerInput" class="textarea" placeholder="What’s happening?" aria-label="Tweet composer"></textarea>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div></div>
+          <div class="bar">
+            <div id="charWrap"><span id="charCount" class="counter" aria-live="polite">0/280</span></div>
+            <div style="display:flex; gap:8px;">
+              <button id="actRephrase" class="btn secondary" aria-label="Rephrase with AI">✨ Improve</button>
+              <button id="composeBtn" class="btn primary" aria-label="Compose tweet with AI">Compose</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding-top:0">
+          <div id="diffPane" class="fade" aria-live="polite">
+            <div class="diff-grid">
+              <div class="bubble">
+                <div class="tweet-row">
+                  <img class="avatar" id="diffAvatar1" src="https://unavatar.io/x/you" alt="Avatar" />
+                  <div>
+                    <div class="tweet-meta">@<span id="diffHandle1">you</span> • Before</div>
+                    <div id="diffBefore"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="bubble">
+                <div class="tweet-row">
+                  <img class="avatar" id="diffAvatar2" src="https://unavatar.io/x/you" alt="Avatar" />
+                  <div>
+                    <div class="tweet-meta">@<span id="diffHandle2">you</span> • After <span class="badge" title="AI enhanced">⚡ AI punch‑up</span></div>
+                    <div id="diffAfter"></div>
+                    <div class="actions">
+                      <button id="copyAfter" class="btn secondary" aria-label="Copy After text">Copy</button>
+                      <button id="applyAfter" class="btn primary" aria-label="Apply After to composer">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="errorBanner" class="banner" role="alert">Couldn’t reach AI, please try again.</div>
+        </div>
+      </section>
+
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="links">
+        <a href="#contact">Contact</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#terms">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Tutorial Overlay -->
+  <div id="tutorialOverlay" class="tutorial-overlay" aria-modal="true" role="dialog" aria-labelledby="tutorialTitle">
+    <div class="tutorial-card fade">
+      <div class="tutorial-header">
+        <h2 id="tutorialTitle" class="tutorial-title">Welcome to TweetJuice!</h2>
+        <div class="tutorial-progress">
+          <div class="progress-dot active"></div>
+          <div class="progress-dot"></div>
+          <div class="progress-dot"></div>
+          <div class="progress-dot"></div>
+        </div>
+      </div>
+      <div class="tutorial-body">
+        <div class="tutorial-step active" data-step="1">
+          <p class="tutorial-text">TweetJuice helps you write punchier, more engaging tweets using AI. Let's get you started!</p>
+          <div class="tutorial-actions">
+            <button id="tutorialNext1" class="btn primary">Let's go! →</button>
+            <button id="skipTutorial" class="btn secondary">Skip tutorial</button>
+          </div>
+        </div>
+        <div class="tutorial-step" data-step="2">
+          <p class="tutorial-text">First, let's set up your profile. What's your Twitter/X handle? (Don't worry, this stays on your device only)</p>
+          <div style="margin:16px 0;">
+            <div class="handle-line">
+              <span aria-hidden="true">@</span>
+              <input id="tutorialHandleInput" type="text" placeholder="yourhandle" aria-label="Your Twitter handle" />
+            </div>
+          </div>
+          <div class="tutorial-actions">
+            <button id="tutorialNext2" class="btn primary">Continue →</button>
+            <button id="tutorialBack2" class="btn secondary">← Back</button>
+          </div>
+        </div>
+        <div class="tutorial-step" data-step="3">
+          <p class="tutorial-text">Perfect! Now let's compose your first tweet. Write something in the composer and hit "Compose" to see the AI magic happen.</p>
+          <div class="tutorial-actions">
+            <button id="tutorialNext3" class="btn primary">Got it! →</button>
+            <button id="tutorialBack3" class="btn secondary">← Back</button>
+          </div>
+        </div>
+        <div class="tutorial-step" data-step="4">
+          <p class="tutorial-text">You're all set! Use the "✨ Improve" button to refine your tweets, and check out the character counter to stay within limits. Happy tweeting!</p>
+          <div class="tutorial-actions">
+            <button id="tutorialFinish" class="btn primary">Start tweeting! ✨</button>
+            <button id="tutorialBack4" class="btn secondary">← Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="settings-modal" aria-modal="true" role="dialog" aria-labelledby="settingsTitle">
+    <div class="settings-card fade">
+      <div class="settings-header">
+        <h3 id="settingsTitle">Settings</h3>
+      </div>
+      <div class="settings-body">
+        <div class="settings-item">
+          <label class="settings-label" for="settingsHandle">Twitter Handle</label>
+          <div class="handle-line">
+            <span aria-hidden="true">@</span>
+            <input id="settingsHandle" type="text" placeholder="yourhandle" />
+          </div>
+        </div>
+        <div class="settings-item">
+          <button id="replayTutorial" class="btn secondary" style="width:100%">
+            🎓 Replay Tutorial
+          </button>
+        </div>
+        <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:24px;">
+          <button id="settingsCancel" class="btn secondary">Cancel</button>
+          <button id="settingsSave" class="btn primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const $ = (id)=>document.getElementById(id);
+
+    // State
+    let currentPreset = 'concise';
+    let isBusy = false;
+
+    // Elements
+    const handleInput = $('handleInput');
+    const handleOut = $('handleOut');
+    const handleOutProfile = $('handleOutProfile');
+    const avatarImg = $('avatarImg');
+    const avatarImgHeader = $('avatarImgHeader');
+    const composerInput = $('composerInput');
+    const charCount = $('charCount');
+    const composeBtn = $('composeBtn');
+    const actRephrase = $('actRephrase');
+    const settingsBtn = $('settingsBtn');
+    const settingsModal = $('settingsModal');
+    const settingsHandle = $('settingsHandle');
+    const settingsCancel = $('settingsCancel');
+    const settingsSave = $('settingsSave');
+    const replayTutorial = $('replayTutorial');
+    const tutorialOverlay = $('tutorialOverlay');
+    const tutorialHandleInput = $('tutorialHandleInput');
+    const diffPane = $('diffPane');
+    const diffBefore = $('diffBefore');
+    const diffAfter = $('diffAfter');
+    const diffHandle1 = $('diffHandle1');
+    const diffHandle2 = $('diffHandle2');
+    const diffAvatar1 = $('diffAvatar1');
+    const diffAvatar2 = $('diffAvatar2');
+    const copyAfter = $('copyAfter');
+    const applyAfter = $('applyAfter');
+
+
+    const errorBanner = $('errorBanner');
+    const demoModeChip = $('demoModeChip');
+    
+    // Tutorial state
+    let currentTutorialStep = 1;
+    let tutorialActive = false;
+
+    // Accessibility helpers
+    function trapFocus(container){
+      const selectors = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+      const focusables = ()=>Array.from(container.querySelectorAll(selectors)).filter(el=>!el.hasAttribute('disabled'));
+      function keydown(e){
+        if(e.key==='Tab'){
+          const list = focusables();
+          if(!list.length) return;
+          const first = list[0];
+          const last = list[list.length-1];
+          if(e.shiftKey && document.activeElement===first){ last.focus(); e.preventDefault(); }
+          else if(!e.shiftKey && document.activeElement===last){ first.focus(); e.preventDefault(); }
+        }
+      }
+      container.addEventListener('keydown', keydown);
+      return ()=>container.removeEventListener('keydown', keydown);
+    }
+
+    // Avatar preload (debounced) and set on blur
+    let debounceTimer;
+    function debounce(fn, ms){ return (...args)=>{ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>fn.apply(this,args), ms); } }
+    const preloadAvatar = debounce((h)=>{
+      const url = `https://unavatar.io/x/${encodeURIComponent(h||'you')}`;
+      // header image can preview live
+      avatarImgHeader.src = url;
+    }, 300);
+
+    handleInput.addEventListener('input', (e)=>{
+      const h = (e.target.value||'').replace(/^@+/, '');
+      preloadAvatar(h);
+    });
+
+    handleInput.addEventListener('blur', ()=>{
+      const h = (handleInput.value||'').replace(/^@+/, '') || 'you';
+      const url = `https://unavatar.io/x/${encodeURIComponent(h)}`;
+      avatarImg.src = url; // profile avatar set on blur
+      avatarImgHeader.src = url;
+      document.querySelectorAll('[data-avatar]').forEach(img=>img.src=url);
+      handleOut.textContent = h;
+      handleOutProfile.textContent = h;
+      diffHandle1.textContent = h;
+      diffHandle2.textContent = h;
+      diffAvatar1.src = url;
+      diffAvatar2.src = url;
+    });
+
+    // Character counter & guardrails
+    function updateCounter(){
+      const n = (composerInput.value||'').length;
+      charCount.textContent = `${n}/280`;
+      charCount.classList.toggle('warn', n>260 && n<=280);
+      charCount.classList.toggle('bad', n>280);
+      setActionsEnabled(n<=280 && !isBusy);
+    }
+    composerInput.addEventListener('input', updateCounter);
+
+    // Simplified preset (always concise)
+    function setPresetFromUI(){
+      currentPreset = 'concise';
+    }
+
+
+
+
+
+
+
+    // Helpers
+    function setBusy(b){
+      isBusy = b; setActionsEnabled(!b && (composerInput.value.length<=280));
+      composeBtn.textContent = b ? 'Thinking…' : 'Compose';
+      composeBtn.ariaBusy = String(b);
+    }
+    function setActionsEnabled(enabled){
+      [composeBtn, actRephrase, copyAfter, applyAfter].forEach(btn=>{ if(btn) btn.disabled = !enabled; });
+      composerInput.disabled = isBusy; // lock textarea during calls
+    }
+    function showError(on){ errorBanner.classList.toggle('show', !!on); }
+    function showDemo(on){ demoModeChip.style.display = on ? 'inline-flex' : 'none'; }
+
+    // API callers
+    async function apiRewrite({text, preset, keepTone, lowercaseHook, customNote}){
+      try{
+        setBusy(true); showError(false);
+        const payload = { text, preset, keepTone, lowercaseHook };
+        if(preset==='custom' && customNote){ payload.customNote = customNote; }
+        const res = await fetch('/api/rewrite', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        const data = await res.json();
+        if(data && data.mock) showDemo(true);
+        return data;
+      }catch(e){ showError(true); throw e; }
+      finally{ setBusy(false); }
+    }
+    async function apiPunchline({text, vibe}){
+      try{
+        setBusy(true); showError(false);
+        const res = await fetch('/api/punchline', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text, vibe })});
+        const data = await res.json();
+        if(data && data.mock) showDemo(true);
+        return data;
+      }catch(e){ showError(true); throw e; }
+      finally{ setBusy(false); }
+    }
+
+    // Diff pane update
+    function updateDiff(before, after){
+      diffBefore.textContent = before;
+      diffAfter.textContent = after;
+      diffPane.style.display = 'block';
+    }
+
+    // Compose flow
+    async function runCompose({keepTone}){
+      const idea = composerInput.value.trim();
+      if(!idea) return;
+      setPresetFromUI();
+      const payload = { text: idea, preset: currentPreset, keepTone: !!keepTone, lowercaseHook: false };
+      const data = await apiRewrite(payload);
+      if(!data) return;
+      const after = data.after || (data.result && data.result.after) || '';
+      updateDiff(idea, after);
+      if(after) composerInput.value = after;
+      updateCounter();
+    }
+
+    composeBtn.addEventListener('click', ()=>runCompose({keepTone:false}));
+
+    // Edit actions
+    actRephrase.addEventListener('click', async ()=>{ await runCompose({keepTone:true}); });
+
+    // Copy / Apply
+    copyAfter.addEventListener('click', async ()=>{
+      const text = diffAfter.textContent || '';
+      try{ await navigator.clipboard.writeText(text); copyAfter.textContent='Copied!'; setTimeout(()=>copyAfter.textContent='Copy', 1000); }catch{}
+    });
+    applyAfter.addEventListener('click', ()=>{ const t = diffAfter.textContent||''; composerInput.value = t; updateCounter(); });
+
+
+
+    // Tutorial System
+    function showTutorial(){
+      tutorialActive = true;
+      tutorialOverlay.classList.add('show');
+      updateTutorialStep(1);
+    }
+    
+    function hideTutorial(){
+      tutorialActive = false;
+      tutorialOverlay.classList.remove('show');
+      localStorage.setItem('tj-tutorial-completed', 'true');
+    }
+    
+    function updateTutorialStep(step){
+      currentTutorialStep = step;
+      document.querySelectorAll('.tutorial-step').forEach((el, i) => {
+        el.classList.toggle('active', i === step - 1);
+      });
+      document.querySelectorAll('.progress-dot').forEach((el, i) => {
+        el.classList.toggle('active', i < step);
+      });
+    }
+    
+    function nextTutorialStep(){
+      if(currentTutorialStep < 4) updateTutorialStep(currentTutorialStep + 1);
+    }
+    
+    function prevTutorialStep(){
+      if(currentTutorialStep > 1) updateTutorialStep(currentTutorialStep - 1);
+    }
+    
+    // Tutorial event listeners
+    $('tutorialNext1').addEventListener('click', nextTutorialStep);
+    $('skipTutorial').addEventListener('click', hideTutorial);
+    
+    $('tutorialNext2').addEventListener('click', () => {
+      const handle = tutorialHandleInput.value.trim();
+      if(handle){
+        handleInput.value = handle;
+        handleInput.dispatchEvent(new Event('blur'));
+      }
+      nextTutorialStep();
+    });
+    $('tutorialBack2').addEventListener('click', prevTutorialStep);
+    
+    $('tutorialNext3').addEventListener('click', nextTutorialStep);
+    $('tutorialBack3').addEventListener('click', prevTutorialStep);
+    
+    $('tutorialFinish').addEventListener('click', hideTutorial);
+    $('tutorialBack4').addEventListener('click', prevTutorialStep);
+    
+    // Settings System
+    function showSettings(){
+      settingsHandle.value = handleInput.value || '';
+      settingsModal.classList.add('show');
+    }
+    
+    function hideSettings(){
+      settingsModal.classList.remove('show');
+    }
+    
+    settingsBtn.addEventListener('click', showSettings);
+    settingsCancel.addEventListener('click', hideSettings);
+    settingsSave.addEventListener('click', () => {
+      const handle = settingsHandle.value.trim();
+      if(handle){
+        handleInput.value = handle;
+        handleInput.dispatchEvent(new Event('blur'));
+      }
+      hideSettings();
+    });
+    
+    replayTutorial.addEventListener('click', () => {
+      hideSettings();
+      showTutorial();
+    });
+    
+    // Close modals on backdrop click
+    tutorialOverlay.addEventListener('click', (e) => {
+      if(e.target === tutorialOverlay) hideTutorial();
+    });
+    
+    settingsModal.addEventListener('click', (e) => {
+      if(e.target === settingsModal) hideSettings();
+    });
+    
+    // Close modals on Escape
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(tutorialActive) hideTutorial();
+        if(settingsModal.classList.contains('show')) hideSettings();
+      }
+    });
+    
+    // Check if first time user
+    function checkFirstTimeUser(){
+      const hasCompletedTutorial = localStorage.getItem('tj-tutorial-completed');
+      if(!hasCompletedTutorial){
+        // Show tutorial after a short delay
+        setTimeout(showTutorial, 800);
+      }
+    }
+
+    // Init
+    updateCounter();
+    setPresetFromUI();
+    checkFirstTimeUser();
+
+    // Disable actions if >280 initially
+    setActionsEnabled(true);
+
+
+
+    // Keyboard shortcuts (optional niceties)
+    document.addEventListener('keydown', (e)=>{
+
+      if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='enter'){ composeBtn.click(); }
+    });
+  })();
+  </script>
+</body>
+</html>
