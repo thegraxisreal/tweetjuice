@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-nano"; // latest model
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-nano"; // enforce model
 
 const app = express();
 
@@ -93,34 +93,55 @@ app.get("/healthz", (_req, res) => res.json({ ok: true }));
 // body: { text, preset?, keepTone?, lowercaseHook? }
 app.post("/api/rewrite", aiLimiter, async (req, res) => {
   try {
-    let { text, preset, keepTone, lowercaseHook } = req.body || {};
+    let { text, mode, lowercase, customNote } = req.body || {};
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "text is required" });
     }
     text = clamp(text, 560); // allow longer input; output clamps to 280
 
+    const effectiveMode = ["hook", "rephrase", "custom"].includes(mode) ? mode : "rephrase";
+    const isLower = !!lowercase;
+
     // Mock if no key
     if (!OPENAI_API_KEY) {
-      const after = lowercaseHook ? lowercaseHookVersion(text) : clamp(`we tightened this up: ${text}`);
-      return res.json({
-        before: clamp(text),
-        after,
-        rationale: "mock: tightened phrasing, front‑loaded value, reduced fluff.",
-        mock: true,
-      });
+      let after = clamp(text);
+      if (effectiveMode === "hook") {
+        after = clamp((isLower ? lowercaseHookVersion(text) : `Hot take: ${text}`));
+      } else if (effectiveMode === "rephrase") {
+        after = clamp(`we tightened this up: ${text}`);
+      } else if (effectiveMode === "custom") {
+        after = clamp(`${customNote ? customNote + ": " : ""}${text}`);
+      }
+      if (isLower) after = String(after).toLowerCase();
+      return res.json({ after, mock: true });
     }
 
-    const system =
-      "You are a writing assistant for short social posts (X/Twitter). Be brief, punchy, and clear. Keep the author's intent. Target 220–260 characters, hard limit 280. Avoid emojis unless present or explicitly requested.";
+    const rules = [
+      "You are a writing assistant for short social posts (X/Twitter).",
+      "Output only the tweet text. No preamble, no explanations.",
+      "Hard limit 280 characters. Target 220–260 when possible.",
+      "Avoid emojis unless present or explicitly requested.",
+      isLower ? "Respond entirely in lowercase." : "Use natural sentence case.",
+    ];
+
+    let instruction = "";
+    if (effectiveMode === "hook") {
+      instruction = isLower
+        ? "Add a short lowercase hook at the start that draws the reader in, then the tweet."
+        : "Add a short hook at the start that draws the reader in, then the tweet.";
+    } else if (effectiveMode === "rephrase") {
+      instruction = "Rewrite to improve clarity, punch, and flow; preserve original intent.";
+    } else {
+      instruction = `Follow this note: ${customNote || ""}`;
+    }
+
+    const system = rules.join(" \n");
     const user = [
       `Original: ${text}`,
-      `Preset: ${preset || "none"}`,
-      `KeepTone: ${!!keepTone}`,
-      `LowercaseHook: ${!!lowercaseHook}`,
-      "Return JSON only with keys { after, rationale }.",
-      lowercaseHook
-        ? "The 'after' MUST be all lowercase and start with a short hook that draws the reader in."
-        : "The 'after' should improve clarity, punch, and flow.",
+      `Mode: ${effectiveMode}`,
+      `Lowercase: ${isLower}`,
+      instruction,
+      "Return JSON only: { after: string }",
     ].join("\n");
 
     const content = await callOpenAIChat(
@@ -132,21 +153,16 @@ app.post("/api/rewrite", aiLimiter, async (req, res) => {
     );
 
     let after = "";
-    let rationale = "";
     if (content) {
       try {
         const parsed = JSON.parse(content);
         after = clamp(parsed.after || "");
-        rationale = parsed.rationale || "";
       } catch {
-        // Non‑JSON fallback
         after = clamp(String(content));
-        rationale = "model returned non‑JSON, coerced to text";
       }
     }
-    if (!after) after = lowercaseHook ? lowercaseHookVersion(text) : clamp(text);
-
-    res.json({ before: clamp(text), after, rationale });
+    if (!after) after = clamp(text);
+    res.json({ after });
   } catch (err) {
     console.error("rewrite error:", err);
     res.status(500).json({ error: "Something went wrong" });
@@ -220,6 +236,57 @@ app.post("/api/punchline", aiLimiter, async (req, res) => {
     res.json({ punchline });
   } catch (err) {
     console.error("punchline error:", err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+/* ------------------------------- Compose Tweet ------------------------------ */
+// body: { topic: string, lowercase?: boolean }
+app.post("/api/compose", aiLimiter, async (req, res) => {
+  try {
+    const { topic, lowercase } = req.body || {};
+    if (!topic || typeof topic !== "string") {
+      return res.status(400).json({ error: "topic is required" });
+    }
+
+    if (!OPENAI_API_KEY) {
+      let after = `quick take: ${topic} — here's what matters most`;
+      if (lowercase) after = after.toLowerCase();
+      return res.json({ after: clamp(after), mock: true });
+    }
+
+    const system = [
+      "You write short social posts (X/Twitter) on request.",
+      "Output only the tweet text. No preamble, no explanations.",
+      "Hard limit 280 characters; target 220–260.",
+      lowercase ? "Respond entirely in lowercase." : "Use natural sentence case.",
+    ].join(" \n");
+    const user = [
+      `Topic: ${topic}`,
+      "Return JSON only: { after: string }",
+    ].join("\n");
+
+    const content = await callOpenAIChat(
+      [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      { temperature: 0.8, max_tokens: 300 }
+    );
+
+    let after = "";
+    if (content) {
+      try {
+        const parsed = JSON.parse(content);
+        after = clamp(parsed.after || "");
+      } catch {
+        after = clamp(String(content));
+      }
+    }
+    if (!after) after = clamp(topic);
+    res.json({ after });
+  } catch (err) {
+    console.error("compose error:", err);
     res.status(500).json({ error: "Something went wrong" });
   }
 });
