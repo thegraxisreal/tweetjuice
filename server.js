@@ -23,6 +23,8 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-nano"; // enforce model
 
 const app = express();
+// Behind Render's proxy; needed for accurate client IPs and rate limiting
+app.set("trust proxy", 1);
 
 /* ------------------------------ Security/CORS ------------------------------ */
 app.use(
@@ -57,7 +59,7 @@ async function callOpenAIChat(messages, { temperature = 0.7, max_tokens = 220 } 
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: OPENAI_MODEL, messages, temperature, max_tokens }),
+    body: JSON.stringify({ model: OPENAI_MODEL, messages, temperature, max_completion_tokens: max_tokens }),
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
@@ -84,7 +86,17 @@ if (!fs.existsSync(path.join(publicDir, "index.html"))) {
     `<!doctype html><meta charset="utf-8"><title>TweetJuice</title><h1>TweetJuice</h1><p>Place your index.html in /public.</p>`
   );
 }
-app.use(express.static(publicDir, { maxAge: "1h", index: "index.html" }));
+app.use(
+  express.static(publicDir, {
+    maxAge: "1h",
+    index: "index.html",
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-store");
+      }
+    },
+  })
+);
 
 /* --------------------------------- Healthz --------------------------------- */
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
