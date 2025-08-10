@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TweetJuice</title>
+  <meta name="description" content="TweetJuice is an AI-powered assistant that helps you craft punchier X posts with better phrasing and engagement." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      /* Monochrome palette to match juice.html */
+      --bg:#ffffff; --fg:#111111; --muted:#8a8a8a; --muted-2:#b3b3b3;
+      --white:#ffffff; --black:#000000;
+      --border:#e5e5e5; --border-soft:#f2f2f2;
+      --radius:16px; --shadow:0 8px 30px rgba(0,0,0,.06);
+      --ease-bounce:cubic-bezier(.2,.8,.2,1);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
+      color:var(--fg); background:var(--bg);
+    }
+    .container{width:100%; max-width:1120px; margin:0 auto; padding:0 20px}
+    a{color:inherit; text-decoration:none}
+
+    /* Hide original header in favor of minimalist top-right logo */
+    header{display:none}
+    .nav,.brand,.brand-logo{display:none}
+
+    /* Minimal top-right logo */
+    .topbar{position:fixed; top:16px; right:16px; display:flex; align-items:center; gap:10px; z-index:80}
+    .logo-text{font-family:'Space Grotesk', Inter, system-ui, sans-serif; font-size:1rem; font-weight:700; letter-spacing:.5px; text-transform:uppercase}
+
+    .cta{display:inline-flex; align-items:center; gap:10px; background:var(--black); color:#fff; font-weight:700; border-radius:12px; padding:12px 18px; border:1px solid var(--black); box-shadow:0 10px 24px rgba(0,0,0,.06); transition:opacity .2s var(--ease-bounce), transform .15s var(--ease-bounce), box-shadow .15s var(--ease-bounce)}
+    .cta:hover{transform:translateY(-2px) scale(1.01); box-shadow:0 14px 32px rgba(0,0,0,.08)}
+    .cta:active{transform:none}
+    .cta:focus-visible{outline:2px solid var(--black); outline-offset:2px}
+
+    /* Hero */
+    .hero{position:relative; overflow:hidden; color:var(--fg); padding:80px 0 40px}
+    .hero-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:32px; align-items:center}
+    .eyebrow{display:inline-flex; align-items:center; gap:8px; background:#fff; color:var(--fg); border:1px solid var(--border); padding:6px 10px; border-radius:999px; font-size:.85rem}
+    .hero h2{font-family:Poppins, Inter, sans-serif; font-weight:800; font-size:clamp(2rem, 6vw, 3rem); line-height:1.1; margin:14px 0}
+    .tagline{font-size:1.05rem; color:var(--muted); margin:0 0 22px}
+    .hero-actions{display:flex; gap:12px; flex-wrap:wrap}
+
+    .ghost{display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:12px; background:#fff; color:var(--black); border:1px solid var(--black); font-weight:600; transition:transform .15s var(--ease-bounce)}
+    .ghost:hover{transform:translateY(-2px)}
+
+    /* Hero mockups */
+    .mock-stack{display:grid; gap:14px}
+    .post-card{background:#fff; border-radius:16px; padding:16px; box-shadow:var(--shadow); border:1px solid var(--border)}
+    .post-row{display:flex; align-items:flex-start; gap:12px}
+    .avatar{width:40px; height:40px; border-radius:50%; background:#f7f7f7; display:inline-grid; place-items:center; font-weight:700; color:#555; border:1px solid var(--border)}
+    .post-content{flex:1}
+    .post-handle{font-size:.9rem; font-weight:700}
+    .post-text{margin:6px 0 10px; color:var(--fg); line-height:1.5}
+    .post-actions{display:flex; gap:16px; color:var(--muted); font-size:.95rem}
+    .badge{display:none}
+    .ai-diff{display:grid; grid-template-columns:1fr; gap:10px}
+    .ai-diff .label{font-size:.8rem; color:var(--muted)}
+
+    /* Hide lower sections for minimalist landing (except testimonials) */
+    section.light, .section.features, #early-access, footer{display:none}
+
+    /* (features hidden) */
+
+    /* Testimonials - visible, minimal styling */
+    .testimonials{background:var(--bg); color:var(--fg); padding:56px 0}
+    .testi-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-top:20px}
+    .quote{background:#fff; border:1px solid var(--border); border-radius:16px; padding:18px; box-shadow:var(--shadow)}
+    .quote .who{display:flex; align-items:center; gap:12px; margin-top:12px}
+    .who .circle{width:36px; height:36px; border-radius:50%; border:1px solid var(--border); display:inline-grid; place-items:center; font-weight:700; color:#555}
+
+    /* (footer hidden) */
+
+    /* Headings */
+    h3.section-title{color:var(--fg); margin:0 0 10px; font-family:Poppins, Inter, sans-serif; font-weight:800; letter-spacing:.3px; font-size:clamp(1.4rem, 2.5vw, 2rem)}
+    h3.section-title.dark{color:var(--fg)}
+    p.section-sub{margin:0; color:var(--muted)}
+    p.section-sub.dark{color:var(--muted)}
+
+    /* Responsive */
+    @media (max-width:1000px){
+      .hero-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:640px){
+      .nav .cta{padding:10px 14px}
+    }
+
+    /* Motion safety */
+    @media (prefers-reduced-motion: reduce) {
+      .cta{transition:none}
+    }
+
+    /* --- Modal styles --- */
+    .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:100}
+    .modal{background:#fff; color:#111; border-radius:16px; width:min(520px, 92vw); box-shadow:var(--shadow); border:1px solid #eee}
+    .modal header{position:unset; backdrop-filter:none; background:#fff; border-bottom:1px solid #eee}
+    .modal .content{padding:20px}
+    .modal h4{margin:0 0 8px; font-size:1.25rem; font-family:Poppins, Inter, sans-serif}
+    .modal p{margin:0 0 16px; color:#374151}
+    .modal .actions{display:flex; gap:12px; justify-content:flex-end}
+    .btn{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; border:1px solid #e5e7eb; background:#fff; font-weight:600}
+    .btn.primary{background:var(--orange); color:#111; border-color:transparent}
+  </style>
+</head>
+<body>
+  <!-- Decorative Background Elements -->
+  <svg aria-hidden="true" width="0" height="0" style="position:fixed">
+    <defs>
+      <linearGradient id="g-juice" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="#FF7F32"/>
+        <stop offset="100%" stop-color="#FFD447"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- Minimal top-right logo -->
+  <div class="topbar" aria-label="Top bar">
+    <div class="logo-text">TweetJuice</div>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10a8 8 0 1016 0" stroke="#FFD447" stroke-width="2"/></svg>
+          New: AI for punchier posts
+        </span>
+        <h2>Squeeze more flavor into your X posts.</h2>
+        <p class="tagline">TweetJuice boosts your phrasing, punchlines, and timing so every post hits like a fresh-pressed idea.</p>
+        <div class="hero-actions">
+          <a class="cta" data-cta="join" href="#early-access"><span class="cta-text">Join Waitlist</span></a>
+          <a class="ghost" href="#how-it-works">See how it works</a>
+        </div>
+      </div>
+
+      <!-- Visual Mockups / Illustrations (unchanged) -->
+      <div class="mock-stack" aria-label="Preview of AI-enhanced posts">
+        <!-- Before / After card 1 -->
+        <div class="post-card">
+          <div class="ai-diff">
+            <span class="label">Before</span>
+            <div class="post-row">
+              <img src="ab.jpg" alt="AB profile" class="avatar" style="object-fit:cover;">
+              <div class="post-content">
+                <div class="post-handle">@alex_builds</div>
+                <p class="post-text">Launching a feature today.</p>
+                <div class="post-actions">
+                  <span>♡ 3</span><span>↻ 0</span><span>💬 1</span>
+                </div>
+              </div>
+            </div>
+            <span class="label">After</span>
+            <div class="post-row">
+              <img src="ab.jpg" alt="AB profile" class="avatar" style="object-fit:cover;">
+              <div class="post-content">
+                <div class="post-handle">@alex_builds</div>
+                <p class="post-text"><strong>We just shipped.</strong> What it means: faster load times, fewer taps, happier you. <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5v14" stroke="#0369A1" stroke-width="2"/></svg>AI punch-up</span></p>
+                <div class="post-actions">
+                  <span>♡ 214</span><span>↻ 42</span><span>💬 18</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Before / After card 2 -->
+        <div class="post-card">
+          <div class="ai-diff">
+            <span class="label">Before</span>
+            <div class="post-row">
+              <img src="klanite.jpg" alt="AB profile" class="avatar" style="object-fit:cover;">
+              <div class="post-content">
+                <div class="post-handle">@klanite</div>
+                <p class="post-text">Thread about startup lessons.</p>
+                <div class="post-actions"><span>♡ 11</span><span>↻ 1</span><span>💬 0</span></div>
+              </div>
+            </div>
+            <span class="label">After</span>
+            <div class="post-row">
+              <img src="klanite.jpg" alt="AB profile" class="avatar" style="object-fit:cover;">
+                <div class="post-handle">@klanite</div>
+                <p class="post-text">10 lessons from our first 100 users ↓ <em>(save this)</em> — #3 nearly killed our launch and #7 doubled retention.</p>
+                <div class="post-actions"><span>♡ 1.2K</span><span>↻ 220</span><span>💬 95</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What TweetJuice does -->
+  <section class="section light" id="how-it-works">
+    <div class="container subgrid">
+      <div>
+        <h3 class="section-title dark">What TweetJuice does</h3>
+        <p class="section-sub dark">A lightweight co‑pilot for before you hit “Post”.</p>
+      </div>
+      <div class="bullets" role="list">
+        <div class="bullet" role="listitem">
+          <div class="feature-icon" style="background:var(--orange);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12h16" stroke="#111" stroke-width="2"/><path d="M8 16h8" stroke="#111" stroke-width="2"/></svg></div>
+          <div>
+            <strong>Sharper phrasing.</strong>
+            <div class="muted">Rewrite to say the same thing with fewer words and more punch.</div>
+          </div>
+        </div>
+        <div class="bullet" role="listitem">
+          <div class="feature-icon" style="background:var(--yellow);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="#111" stroke-width="2"/></svg></div>
+          <div>
+            <strong>Hooks & punchlines.</strong>
+            <div class="muted">Generate openers and finishes that spark replies and shares.</div>
+          </div>
+        </div>
+        <div class="bullet" role="listitem">
+          <div class="feature-icon" style="background:#EAEAFF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 4h12v6H6zM6 14h8v6H6z" stroke="#111" stroke-width="2"/></svg></div>
+          <div>
+            <strong>Timing & scheduling.</strong>
+            <div class="muted">Suggest post times and queue threads that fit your audience.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features (unchanged content) -->
+  <section class="section features" id="features">
+    <div class="container">
+      <h3 class="section-title dark">Key features</h3>
+      <p class="section-sub dark">Everything you need to go from draft to 🔥 without the guesswork.</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12l4 4 8-8" stroke="#111" stroke-width="2"/></svg></div>
+          <h4>AI‑Powered Phrasing</h4>
+          <p>Rewrite, shorten, or expand with context‑aware suggestions that keep your voice.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#111" stroke-width="2"/></svg></div>
+          <h4>Punchline Generator</h4>
+          <p>Finish with a snap. Generate closers, CTAs, and witty one‑liners.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v4H6zM6 11h12v10H6z" stroke="#111" stroke-width="2"/></svg></div>
+          <h4>Post Scheduler</h4>
+          <p>Queue singles or threads and pick optimal send times automatically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="#111" stroke-width="2"/><path d="M12 8v5l3 2" stroke="#111" stroke-width="2"/></svg></div>
+          <h4>Best‑Time Suggestions</h4>
+          <p>Learn when your followers are most active and post for maximum reach.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10" stroke="#111" stroke-width="2"/></svg></div>
+          <h4>Thread Builder</h4>
+          <p>Draft and rearrange multi‑post threads with character counts and previews.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9 5-9 5-9-5 9-5zm-6 11l6 3 6-3" stroke="#111" stroke-width="2"/></svg></div>
+          <h4>Style Presets</h4>
+          <p>Choose vibes like “concise,” “spicy,” or “educational” and apply one‑click.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials (unchanged content) -->
+  <section class="section testimonials" id="testimonials">
+    <div class="container">
+      <h3 class="section-title dark">Loved by builders & creators</h3>
+      <p class="section-sub dark">Early users, big energy.</p>
+      <div class="testi-grid">
+        <div class="quote">
+          "helps keep my posts chill and real, but still engaging"
+          <div class="who">
+            <img src="thegraxisreal.jpg" alt="thegraxisreal profile" class="circle" style="background:none; object-fit:cover; width:36px; height:36px;">
+            <div>
+              <strong>thegraxisreal 
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" style="display:inline; margin-left:4px;" aria-label="Verified">
+                  <circle cx="12" cy="12" r="9" fill="#1DA1F2"/>
+                  <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" fill="none"/>
+                </svg>
+              </strong>
+              <div class="muted">Founder</div>
+            </div>
+          </div>
+        </div>
+        <div class="quote">
+          "The punchline ideas are ridiculous. I keep a few ready and rotate them."
+          <div class="who">
+            <img src="klanite.jpg" alt="Klanite profile" class="circle" style="background:none; object-fit:cover; width:36px; height:36px;">
+            <div>
+              <strong>Klanite</strong>
+              <div class="muted">Creator</div>
+            </div>
+          </div>
+        </div>
+        <div class="quote">
+          "tweetjuice helps my posts get quoted by elon so much more!"
+          <div class="who">
+            <img src="clark.jpg" alt="Clark Seeley profile" class="circle" style="background:none; object-fit:cover; width:36px; height:36px;">
+            <div>
+              <strong>Clark Seeley 
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" style="display:inline; margin-left:4px;" aria-label="Verified">
+                  <circle cx="12" cy="12" r="9" fill="#1DA1F2"/>
+                  <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" fill="none"/>
+                </svg>
+              </strong>
+              <div class="muted">X enthusiast</div>
+            </div>
+          </div>
+        </div>
+      </div>
+  </section>
+
+  <!-- Early Access / Email Capture Placeholder (unchanged form) -->
+  <section class="section" id="early-access" style="background:linear-gradient(180deg, #FF7F32 0%, #FFD447 100%); color:#111">
+    <div class="container subgrid" style="align-items:center">
+      <div>
+        <h3 class="section-title dark" style="color:#111">Be first in line</h3>
+        <p class="section-sub dark" style="color:#333">Join the early access list and we’ll invite you as we roll out.</p>
+      </div>
+      <form class="bullet" id="invite-form" style="display:flex; gap:12px; align-items:center; background:rgba(255,255,255,.7);">
+        <input type="email" name="email" placeholder="you@domain.com" aria-label="Email address" required style="flex:1; padding:12px 14px; border-radius:10px; border:1px solid #d1d5db; font-size:1rem"/>
+        <button type="submit" class="cta" style="background:#111; color:#fff; box-shadow:none">Request Invite</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer (unchanged) -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="links" aria-label="Footer links">
+        <a href="#contact">Contact</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#terms">Terms of Service</a>
+      </div>
+      <div class="social" aria-label="Social links">
+        <a href="#" aria-label="X / Twitter">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4l16 16M20 4L4 20" stroke="#cbd5e1" stroke-width="2"/></svg>
+        </a>
+        <a href="#" aria-label="GitHub">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2a10 10 0 00-3 19.5c.5.1.7-.2.7-.5v-1.7c-3 .6-3.7-1.4-3.7-1.4-.5-1.2-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 1.8 2.7 1.3 3.3 1 .1-.7.4-1.3.7-1.6-2.4-.3-4.9-1.2-4.9-5.3 0-1.2.4-2.1 1.1-2.9-.1-.3-.5-1.5.1-3 0 0 .9-.3 3 1.1a10.4 10.4 0 015.6 0c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.7.1 3 .7.8 1.1 1.7 1.1 2.9 0 4.1-2.5 5-4.9 5.3.4.3.7 1 .7 2v3c0 .3.2.6.7.5A10 10 0 0012 2z" stroke="#cbd5e1" stroke-width="1"/></svg>
+        </a>
+        <a href="#" aria-label="LinkedIn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 10v8M6 6v0M11 18v-6a3 3 0 016 0v6" stroke="#cbd5e1" stroke-width="2"/></svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- \u2014\u2014 Modal (hidden by default) \u2014\u2014 -->
+  <div class="modal-overlay" id="welcome-modal" role="dialog" aria-modal="true" aria-labelledby="welcome-title" aria-hidden="true">
+    <div class="modal" role="document">
+      <header style="padding:14px 20px; display:flex; align-items:center; justify-content:space-between;">
+        <strong id="welcome-title">Good news!</strong>
+        <button class="btn" id="modal-close" aria-label="Close">Close</button>
+      </header>
+      <div class="content">
+        <h4>Early adoption perk</h4>
+        <p>For early adopters, we'll let you in right now. Ready to squeeze some juice?</p>
+        <div class="actions">
+          <button class="btn" id="modal-cancel">Not now</button>
+          <button class="btn primary" id="modal-enter">Enter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const STORAGE_KEY = 'tj_joined_waitlist';
+      const joined = () => localStorage.getItem(STORAGE_KEY) === '1';
+      const markJoined = () => localStorage.setItem(STORAGE_KEY, '1');
+
+      const ctas = Array.from(document.querySelectorAll('[data-cta="join"]'));
+      const modal = document.getElementById('welcome-modal');
+      const modalEnter = document.getElementById('modal-enter');
+      const modalClose = document.getElementById('modal-close');
+      const modalCancel = document.getElementById('modal-cancel');
+
+      function openModal(){
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        // Move focus for a11y
+        modal.querySelector('#modal-enter').focus();
+        document.body.style.overflow = 'hidden';
+      }
+      function closeModal(){
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      function updateCTAs(){
+        ctas.forEach(el => {
+          if(joined()){
+            el.href = 'juice.html';
+            el.setAttribute('aria-label','Go to main page');
+            const span = el.querySelector('.cta-text');
+            if(span) span.textContent = 'Go to Main Page';
+          }else{
+            el.href = '#early-access';
+            el.setAttribute('aria-label','Join the waitlist for TweetJuice');
+            const span = el.querySelector('.cta-text');
+            if(span) span.textContent = 'Join Waitlist';
+          }
+        });
+      }
+
+      // Intercept CTA clicks when not joined yet
+      ctas.forEach(el => {
+        el.addEventListener('click', (e) => {
+          if(!joined()){
+            e.preventDefault();
+            openModal();
+          }
+        });
+      });
+
+      // If the invite form is submitted, also mark as joined and show modal
+      const inviteForm = document.getElementById('invite-form');
+      if(inviteForm){
+        inviteForm.addEventListener('submit', (e) => {
+          e.preventDefault(); // you can remove this when wiring a backend
+          markJoined();
+          updateCTAs();
+          openModal();
+        });
+      }
+
+      // Modal button behaviors
+      modalEnter.addEventListener('click', () => {
+        markJoined();
+        updateCTAs();
+        window.location.href = 'juice.html';
+      });
+      [modalClose, modalCancel].forEach(btn => btn.addEventListener('click', closeModal));
+      modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+
+      // Init on load
+      updateCTAs();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TweetJuice — Main App</title>
+  <meta name="description" content="Compose punchier X posts with TweetJuice. Smart rewrite and punchline tools built in." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      /* Monochrome palette */
+      --bg:#ffffff; --fg:#111111; --muted:#8a8a8a; --muted-2:#b3b3b3;
+      --white:#ffffff; --black:#000000;
+      --border:#e5e5e5; --border-soft:#f2f2f2;
+      --radius:16px; --radius-sm:12px; --shadow:0 8px 30px rgba(0,0,0,.06);
+      --ease-bounce:cubic-bezier(.2,.8,.2,1);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--fg);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
+      background:var(--bg);
+      min-height:100dvh;
+      display:grid; place-items:center;
+      position:relative;
+    }
+    /* Subtle yellow semicircle accent from the left */
+    body::before{
+      content:""; position:fixed; left:-260px; top:18vh; width:760px; height:760px; border-radius:50%; pointer-events:none; z-index:0;
+      background:radial-gradient(circle at 62% 50%, rgba(255,212,71,.18), rgba(255,212,71,.08) 45%, rgba(255,212,71,0) 60%);
+      filter:blur(8px);
+    }
+    a{color:inherit; text-decoration:none}
+    .container{max-width:800px; margin:0 auto; padding:0 20px}
+
+    /* Hide chrome for minimalist canvas */
+    header, footer{display:none}
+    .nav{display:flex; align-items:center; justify-content:space-between; padding:16px 0}
+    .brand{display:flex; align-items:center; gap:12px; color:#fff}
+    .logo{width:40px; height:40px}
+    .wordmark{font-family:Poppins, Inter, sans-serif; font-weight:800; letter-spacing:.3px; font-size:1.25rem}
+    .userchip{display:flex; align-items:center; gap:10px; color:#cbd5e1}
+    .userchip img{width:32px; height:32px; border-radius:999px; border:1px solid rgba(255,255,255,.18)}
+    .userchip .h{color:#fff; font-weight:700}
+
+    /* Layout */
+    main{padding:32px 0 80px}
+    .grid{display:grid; place-items:center; gap:0; max-width:720px; margin:0 auto; position:relative; z-index:1}
+    @media (max-width:768px){.grid{max-width:92vw}}
+
+    /* Cards — bright and clean */
+    .card{background:#fff; color:var(--fg); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .card h3{font-family:Inter, sans-serif; margin:0 0 6px; font-weight:600; font-size:1.1rem}
+    .card .sub{color:var(--muted); margin:0 0 16px; font-size:0.9rem}
+    .card-body{padding:20px}
+
+    /* Profile card */
+    .profile-row{display:flex; align-items:center; gap:14px}
+    .avatar{width:56px; height:56px; border-radius:50%; background:#f8f9fa; border:2px solid var(--border-soft); object-fit:cover}
+    .avatar-lg{width:48px; height:48px}
+    .handle-line{display:flex; align-items:center; gap:8px; margin-top:12px}
+    .handle-line input{flex:1; background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color:var(--text); border:1px solid var(--border-soft); border-radius:12px; padding:12px 16px; font-size:0.95rem; transition:all 0.2s ease}
+    .handle-line input:focus{outline:2px solid rgba(255,107,53,.4); outline-offset:1px; border-color:var(--orange); background:linear-gradient(135deg, #ffffff 0%, #fefefe 100%); box-shadow:0 0 0 3px rgba(255,107,53,.1)}
+
+    /* Composer — centered, monochrome */
+    .composer-card{padding:0; width:min(720px, 92vw); transition:transform .18s var(--ease-bounce), box-shadow .18s var(--ease-bounce)}
+    .composer-card:focus-within{transform:translateY(-2px) scale(1.005); box-shadow:0 14px 40px rgba(0,0,0,.08)}
+    .composer-header{display:none}
+    .compose-row{display:flex; align-items:flex-start; gap:14px; padding:18px 22px}
+    .compose-row .avatar{width:52px; height:52px; border-radius:50%; border:1px solid var(--border); object-fit:cover}
+    .compose-col{flex:1; border-bottom:1px solid var(--border-soft)}
+    .textarea{width:100%; min-height:160px; resize:vertical; background:transparent; color:var(--fg);
+      border:none; border-radius:0; padding:10px 0; line-height:1.6; font-size:1.15rem; font-weight:400}
+    .textarea:focus{outline:none}
+    .textarea::placeholder{color:#9ca3af; font-weight:400}
+
+    .toolbar{display:flex; align-items:center; justify-content:space-between; padding:12px 22px 18px}
+    .icons{display:none}
+    .iconbtn{display:none}
+
+    /* Edit dropdown menu */
+    .menu{position:absolute; right:22px; top:100%; margin-top:8px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); width:260px; padding:12px; z-index:50; display:none}
+    .menu.show{display:block; animation:fade .15s var(--ease-bounce) both}
+    .menu .row{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 6px}
+    .menu .hr{height:1px; background:var(--border-soft); margin:6px 0}
+    .seg{display:inline-flex; background:#fff; border:1px solid var(--black); border-radius:10px; overflow:hidden}
+    .seg button{appearance:none; background:#fff; color:var(--black); border:none; padding:8px 10px; cursor:pointer; font-weight:600}
+    .seg button.active{background:var(--black); color:#fff}
+    .menu .action{width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--black); background:#fff; color:var(--black); border-radius:10px; padding:10px 12px; cursor:pointer; transition:transform .12s var(--ease-bounce)}
+    .menu .action:hover{transform:translateY(-1px)}
+    .badge.hot{font-size:.75rem; color:var(--muted); border:1px solid var(--border); padding:2px 6px; border-radius:999px}
+
+    /* Apply glow */
+    .apply-glow{animation:glow 650ms ease-out}
+    @keyframes glow{0%{background:rgba(255,247,159,.65)} 100%{background:transparent}}
+    
+    /* Icon button (monochrome) */
+    .btn-icon{background:#fff; border:1px solid var(--black); width:40px; height:40px; border-radius:12px; display:grid; place-items:center; cursor:pointer; color:var(--black); transition:transform .15s var(--ease-bounce), background .15s var(--ease-bounce), color .15s var(--ease-bounce)}
+    .btn-icon:hover{background:var(--black); color:#fff; transform:translateY(-2px) scale(1.02)}
+    .btn-icon:active{transform:none}
+    .btn-icon:focus-visible{outline:2px solid var(--black); outline-offset:2px}
+
+    /* Minimal top-right logo bar */
+    .topbar{position:fixed; top:16px; right:16px; display:flex; align-items:center; gap:10px; z-index:80}
+    .logo-text{font-family:'Space Grotesk', Inter, system-ui, sans-serif; font-size:1rem; font-weight:700; letter-spacing:.5px; text-transform:uppercase}
+
+    .btn{appearance:none; border:1px solid var(--black); cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-weight:600;
+      background:var(--black); color:#fff; padding:12px 20px; border-radius:12px; font-size:0.95rem; transition:opacity .2s var(--ease-bounce), transform .15s var(--ease-bounce), box-shadow .15s var(--ease-bounce), background .15s var(--ease-bounce), color .15s var(--ease-bounce)}
+    .btn:hover{transform:translateY(-2px) scale(1.01); box-shadow:0 10px 24px rgba(0,0,0,.08)}
+    .btn:active{transform:translateY(0) scale(.99)}
+    .btn[disabled]{opacity:.5; cursor:not-allowed; transform:none; box-shadow:none}
+    .btn.primary{background:var(--black); color:#fff; border-color:var(--black)}
+    .btn.secondary{background:#fff; color:var(--black); border-color:var(--black)}
+    /* Edit button hidden until typing */
+    .btn.edit{opacity:0; pointer-events:none; transform:translateY(6px) scale(.98)}
+    .btn.edit.is-visible{opacity:1; pointer-events:auto; transform:none}
+
+    .chip{display:none}
+    .counter{font-variant-numeric:tabular-nums; font-weight:600; color:#6b7280; font-size:0.9rem}
+    .counter.warn{color:#d97706}
+    .counter.bad{color:#dc2626}
+
+    /* Simplified toolbar */
+    .bar{display:flex; align-items:center; justify-content:space-between; padding-top:4px}
+
+    /* Diff pane removed in minimalist mode */
+
+
+
+    /* Banner / errors */
+    .banner{display:none; margin-top:12px; padding:12px 16px; border-radius:12px; background:#f8f8f8; border:1px solid var(--border); color:#8a1f1f; font-weight:500}
+    .banner.show{display:block}
+
+
+
+    /* Footer hidden */
+    footer{display:none}
+
+    /* Tutorial Overlay - keep functional but unused visually */
+    .tutorial-overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; display:none; align-items:center; justify-content:center}
+    .tutorial-overlay.show{display:flex}
+    .tutorial-card{background:#fff; border-radius:20px; max-width:500px; margin:20px; box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    .tutorial-header{padding:24px 24px 0; text-align:center}
+    .tutorial-body{padding:16px 24px 24px}
+    .tutorial-title{font-family:Poppins, Inter, sans-serif; font-weight:800; font-size:1.5rem; color:var(--text); margin:0 0 8px}
+    .tutorial-text{color:var(--muted); line-height:1.6; margin:0 0 20px}
+    .tutorial-actions{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+    .tutorial-step{display:none}
+    .tutorial-step.active{display:block}
+    .tutorial-progress{display:flex; gap:8px; justify-content:center; margin:16px 0}
+    .progress-dot{width:8px; height:8px; border-radius:50%; background:var(--border-soft); transition:all 0.2s ease}
+    .progress-dot.active{background:linear-gradient(135deg, var(--orange), var(--yellow))}
+    
+    /* Settings Modal */
+    .settings-modal{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:90; display:none; align-items:center; justify-content:center}
+    .settings-modal.show{display:flex}
+    .settings-card{background:#fff; border-radius:16px; max-width:400px; margin:20px; box-shadow:0 15px 40px rgba(0,0,0,.2)}
+    .settings-header{padding:20px 20px 0; border-bottom:1px solid var(--border-soft)}
+    .settings-body{padding:20px}
+    .settings-item{margin-bottom:16px}
+    .settings-label{display:block; font-weight:600; color:var(--text); margin-bottom:8px}
+    
+    /* Motion safety */
+    @media (prefers-reduced-motion:no-preference){
+      .fade{animation:fade .2s var(--ease-bounce) both}
+      @keyframes fade{from{opacity:0; transform:translateY(6px) scale(.98)} to{opacity:1; transform:none}}
+      .tutorial-overlay{animation:fadeIn .3s var(--ease-bounce) both}
+      @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+    }
+
+    /* Minimalist presentation tweaks */
+    .sub{color:var(--muted)}
+    .counter{color:var(--muted); font-variant-numeric:tabular-nums}
+    /* Hide profile card in grid */
+    .grid > section:first-child{display:none}
+  </style>
+</head>
+<body>
+  <!-- Minimal top-right logo + settings -->
+  <div class="topbar" role="navigation" aria-label="Top bar">
+    <div class="logo-text">TweetJuice</div>
+    <button id="topSettingsBtn" class="btn-icon" title="Settings" aria-label="Open settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.13a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="App header">
+      <div class="brand" aria-label="TweetJuice wordmark">
+        <svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="url(#g)"/>
+          <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#FF7F32"/><stop offset="100%" stop-color="#FFD447"/></linearGradient></defs>
+          <path d="M16 36c12 4 22-4 30-16 0 10-6 22-20 24 4 2 9 2 14 0-5 6-12 10-20 10C16 48 14 40 16 36z" fill="#121433"/>
+        </svg>
+        <strong class="wordmark">TweetJuice</strong>
+      </div>
+      <div class="userchip" aria-live="polite">
+        <span class="at" aria-hidden="true">@</span><span id="handleOut"></span>
+        <img id="avatarImgHeader" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23f5f5f5'/></svg>" alt="Avatar preview" />
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <!-- Left: Profile card -->
+      <section class="card" aria-labelledby="profileTitle">
+        <div class="card-body">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+            <div>
+              <h3 id="profileTitle">Profile</h3>
+              <p class="sub">Set your @handle to preview the avatar.</p>
+            </div>
+            <button id="settingsBtn" class="btn-icon" title="Settings" aria-label="Open settings">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.13a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="profile-row">
+            <img id="avatarImg" class="avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23f5f5f5'/></svg>" alt="Profile avatar" />
+            <div>
+              <div style="font-weight:600; color:#1f2937; margin-bottom:2px;">Display Name</div>
+              <div style="color:#6b7280; font-size:0.9rem;"><span class="at" aria-hidden="true">@</span><span id="handleOutProfile"></span></div>
+            </div>
+          </div>
+          <div class="handle-line">
+            <label for="handleInput" class="visually-hidden">Handle</label>
+            <span aria-hidden="true">@</span>
+            <input id="handleInput" type="text" inputmode="twitter" placeholder="yourhandle" aria-label="Twitter handle (without @)" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Center: Composer -->
+      <section class="card composer-card" aria-labelledby="composerTitle">
+        <div class="composer-header">
+          <div>
+            <h3 id="composerTitle">Composer</h3>
+            <p class="sub">Write it once. Let AI make it land.</p>
+          </div>
+          <span id="demoModeChip" class="chip" style="display:none">demo mode</span>
+        </div>
+
+        <div class="compose-row">
+          <img data-avatar class="avatar avatar-lg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23f5f5f5'/></svg>" alt="Your avatar" />
+          <div class="compose-col" style="padding-right:6px">
+            <textarea id="composerInput" class="textarea" placeholder="What's Happening?" aria-label="Tweet composer"></textarea>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div></div>
+          <div class="bar" style="position:relative">
+            <div id="charWrap"><span id="charCount" class="counter" aria-live="polite">0/280</span></div>
+            <div style="display:flex; gap:8px; position:relative">
+              <button id="actRephrase" class="btn secondary edit" aria-haspopup="true" aria-expanded="false" aria-controls="editMenu" aria-label="Edit your text">Edit</button>
+              <button id="composeBtn" class="btn primary" aria-label="Compose tweet with AI">Compose</button>
+              <div id="editMenu" class="menu" role="menu" aria-label="Edit tools">
+                <div class="row" style="justify-content:center">
+                  <div class="seg" role="group" aria-label="Case">
+                    <button type="button" id="caseUpper" class="active">UP</button>
+                    <button type="button" id="caseLower">low</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <button type="button" id="doHook" class="action" role="menuitem">
+                    <span>Add hook</span>
+                    <span class="badge hot">hot</span>
+                  </button>
+                </div>
+                <div class="hr"></div>
+                <div class="row">
+                  <button type="button" id="doRephrase" class="action" role="menuitem">Rephrase</button>
+                </div>
+                <div class="row" style="align-items:flex-start; flex-direction:column; gap:8px">
+                  <button type="button" id="doCustom" class="action" role="menuitem">Custom</button>
+                  <textarea id="customNote" placeholder="What should the AI do?" style="width:100%; min-height:64px; border:1px solid var(--border); border-radius:10px; padding:8px; font:inherit"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding-top:0">
+          
+
+          <div id="errorBanner" class="banner" role="alert">Couldn’t reach AI, please try again.</div>
+        </div>
+      </section>
+
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="links">
+        <a href="#contact">Contact</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#terms">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Tutorial Overlay -->
+  <div id="tutorialOverlay" class="tutorial-overlay" aria-modal="true" role="dialog" aria-labelledby="tutorialTitle">
+    <div class="tutorial-card fade">
+      <div class="tutorial-header">
+        <h2 id="tutorialTitle" class="tutorial-title">Welcome to TweetJuice!</h2>
+        <div class="tutorial-progress">
+          <div class="progress-dot active"></div>
+          <div class="progress-dot"></div>
+          <div class="progress-dot"></div>
+          <div class="progress-dot"></div>
+        </div>
+      </div>
+      <div class="tutorial-body">
+        <div class="tutorial-step active" data-step="1">
+          <p class="tutorial-text">TweetJuice helps you write punchier, more engaging tweets using AI. Let's get you started!</p>
+          <div class="tutorial-actions">
+            <button id="tutorialNext1" class="btn primary">Let's go! →</button>
+            <button id="skipTutorial" class="btn secondary">Skip tutorial</button>
+          </div>
+        </div>
+        <div class="tutorial-step" data-step="2">
+          <p class="tutorial-text">First, let's set up your profile. What's your Twitter/X handle? (Don't worry, this stays on your device only)</p>
+          <div style="margin:16px 0;">
+            <div class="handle-line">
+              <span aria-hidden="true">@</span>
+              <input id="tutorialHandleInput" type="text" placeholder="yourhandle" aria-label="Your Twitter handle" />
+            </div>
+          </div>
+          <div class="tutorial-actions">
+            <button id="tutorialNext2" class="btn primary">Continue →</button>
+            <button id="tutorialBack2" class="btn secondary">← Back</button>
+          </div>
+        </div>
+        <div class="tutorial-step" data-step="3">
+          <p class="tutorial-text">Perfect! Now let's compose your first tweet. Write something in the composer and hit "Compose" to see the AI magic happen.</p>
+          <div class="tutorial-actions">
+            <button id="tutorialNext3" class="btn primary">Got it! →</button>
+            <button id="tutorialBack3" class="btn secondary">← Back</button>
+          </div>
+        </div>
+        <div class="tutorial-step" data-step="4">
+          <p class="tutorial-text">You're all set! Use the "✨ Improve" button to refine your tweets, and check out the character counter to stay within limits. Happy tweeting!</p>
+          <div class="tutorial-actions">
+            <button id="tutorialFinish" class="btn primary">Start tweeting! ✨</button>
+            <button id="tutorialBack4" class="btn secondary">← Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="settings-modal" aria-modal="true" role="dialog" aria-labelledby="settingsTitle">
+    <div class="settings-card fade">
+      <div class="settings-header">
+        <h3 id="settingsTitle">Settings</h3>
+      </div>
+      <div class="settings-body">
+        <div class="settings-item">
+          <label class="settings-label" for="settingsHandle">Twitter Handle</label>
+          <div class="handle-line">
+            <span aria-hidden="true">@</span>
+            <input id="settingsHandle" type="text" placeholder="yourhandle" />
+          </div>
+        </div>
+        <div class="settings-item">
+          <button id="replayTutorial" class="btn secondary" style="width:100%">
+            🎓 Replay Tutorial
+          </button>
+        </div>
+        <div class="settings-item">
+          <button id="resetTutorial" class="btn secondary" style="width:100%">
+            ⟲ Reset Tutorial
+          </button>
+        </div>
+        <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:24px;">
+          <button id="settingsCancel" class="btn secondary">Cancel</button>
+          <button id="settingsSave" class="btn primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const $ = (id)=>document.getElementById(id);
+
+    // State
+    let currentPreset = 'concise';
+    let isBusy = false;
+
+    // Elements
+    const handleInput = $('handleInput');
+    const handleOut = $('handleOut');
+    const handleOutProfile = $('handleOutProfile');
+    const avatarImg = $('avatarImg');
+    const avatarImgHeader = $('avatarImgHeader');
+    const composerInput = $('composerInput');
+    const charCount = $('charCount');
+    const composeBtn = $('composeBtn');
+    const actRephrase = $('actRephrase');
+    const settingsBtn = $('settingsBtn');
+    const topSettingsBtn = $('topSettingsBtn');
+    const settingsModal = $('settingsModal');
+    const settingsHandle = $('settingsHandle');
+    const settingsCancel = $('settingsCancel');
+    const settingsSave = $('settingsSave');
+    const replayTutorial = $('replayTutorial');
+    const tutorialOverlay = $('tutorialOverlay');
+    const tutorialHandleInput = $('tutorialHandleInput');
+
+
+    const errorBanner = $('errorBanner');
+    const demoModeChip = $('demoModeChip');
+    
+    // Tutorial state
+    let currentTutorialStep = 1;
+    let tutorialActive = false;
+
+    // Accessibility helpers
+    function trapFocus(container){
+      const selectors = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+      const focusables = ()=>Array.from(container.querySelectorAll(selectors)).filter(el=>!el.hasAttribute('disabled'));
+      function keydown(e){
+        if(e.key==='Tab'){
+          const list = focusables();
+          if(!list.length) return;
+          const first = list[0];
+          const last = list[list.length-1];
+          if(e.shiftKey && document.activeElement===first){ last.focus(); e.preventDefault(); }
+          else if(!e.shiftKey && document.activeElement===last){ first.focus(); e.preventDefault(); }
+        }
+      }
+      container.addEventListener('keydown', keydown);
+      return ()=>container.removeEventListener('keydown', keydown);
+    }
+
+    // Avatar preload (debounced) and set on blur
+    let debounceTimer;
+    function debounce(fn, ms){ return (...args)=>{ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>fn.apply(this,args), ms); } }
+    const preloadAvatar = debounce((h)=>{
+      if(!h){ return; }
+      const url = `https://unavatar.io/x/${encodeURIComponent(h)}`;
+      // header image can preview live
+      avatarImgHeader.src = url;
+    }, 300);
+
+    handleInput.addEventListener('input', (e)=>{
+      const h = (e.target.value||'').replace(/^@+/, '');
+      preloadAvatar(h);
+    });
+
+    handleInput.addEventListener('blur', ()=>{
+      const hRaw = (handleInput.value||'').replace(/^@+/, '');
+      const hasHandle = !!hRaw;
+      const url = hasHandle ? `https://unavatar.io/x/${encodeURIComponent(hRaw)}` : `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23f5f5f5'/></svg>`;
+      avatarImg.src = url; // profile avatar set on blur
+      avatarImgHeader.src = url;
+      document.querySelectorAll('[data-avatar]').forEach(img=>img.src=url);
+      handleOut.textContent = hasHandle ? hRaw : '';
+      handleOutProfile.textContent = hasHandle ? hRaw : '';
+      // persist handle
+      try{
+        if(hasHandle){ localStorage.setItem('tj-handle', hRaw); }
+        else{ localStorage.removeItem('tj-handle'); }
+      }catch{}
+    });
+
+    // Character counter & guardrails
+    function updateCounter(){
+      const n = (composerInput.value||'').length;
+      charCount.textContent = `${n}/280`;
+      charCount.classList.toggle('warn', n>260 && n<=280);
+      charCount.classList.toggle('bad', n>280);
+      setActionsEnabled(n<=280 && !isBusy);
+      // Reveal Edit button if user typed anything
+      const editBtn = document.getElementById('actRephrase');
+      if(editBtn){
+        if(n>0){ editBtn.classList.add('is-visible'); }
+        else{ editBtn.classList.remove('is-visible'); }
+      }
+    }
+    composerInput.addEventListener('input', updateCounter);
+
+    // Simplified preset (always concise)
+    function setPresetFromUI(){
+      currentPreset = 'concise';
+    }
+
+
+
+
+
+
+
+    // Helpers
+    function setBusy(b){
+      isBusy = b; setActionsEnabled(!b && (composerInput.value.length<=280));
+      composeBtn.textContent = b ? 'Thinking…' : 'Compose';
+      composeBtn.ariaBusy = String(b);
+    }
+    function setActionsEnabled(enabled){
+      [composeBtn, actRephrase, copyAfter, applyAfter].forEach(btn=>{ if(btn) btn.disabled = !enabled; });
+      composerInput.disabled = isBusy; // lock textarea during calls
+    }
+    function showError(on){ errorBanner.classList.toggle('show', !!on); }
+    function showDemo(on){ demoModeChip.style.display = on ? 'inline-flex' : 'none'; }
+
+    // API callers
+    async function apiRewrite({ text, mode, lowercase, customNote }){
+      try{
+        setBusy(true); showError(false);
+        const payload = { text, mode, lowercase, customNote };
+        const res = await fetch('/api/rewrite', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        if(!res.ok){ const txt = await res.text().catch(()=>"error"); throw new Error(txt || 'Request failed'); }
+        const data = await res.json();
+        if(data && data.mock) showDemo(true);
+        return data;
+      }catch(e){ showError(true); throw e; }
+      finally{ setBusy(false); }
+    }
+    async function apiPunchline({text, vibe}){
+      try{
+        setBusy(true); showError(false);
+        const res = await fetch('/api/punchline', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text, vibe })});
+        const data = await res.json();
+        if(data && data.mock) showDemo(true);
+        return data;
+      }catch(e){ showError(true); throw e; }
+      finally{ setBusy(false); }
+    }
+
+    // Diff pane update
+    function animateApply(newText){
+      composerInput.classList.remove('apply-glow');
+      // trigger reflow to restart animation
+      void composerInput.offsetWidth;
+      composerInput.value = newText;
+      composerInput.classList.add('apply-glow');
+      updateCounter();
+    }
+
+    // Compose flow
+    // Compose flow now prompts the user for a topic
+    async function runComposeFlow(){
+      const topic = prompt('What would you like to post about today?');
+      if(!topic) return;
+      try{
+        setBusy(true);
+        const res = await fetch('/api/compose', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic })});
+        if(!res.ok){ const txt = await res.text().catch(()=>"error"); throw new Error(txt || 'Request failed'); }
+        const data = await res.json();
+        const after = (data && data.after) || '';
+        if(after){ animateApply(after); }
+        else{ showError(true); }
+      }catch{ showError(true); }
+      finally{ setBusy(false); }
+    }
+
+    composeBtn.addEventListener('click', runComposeFlow);
+
+    // Edit menu state
+    const editMenu = document.getElementById('editMenu');
+    const caseUpper = document.getElementById('caseUpper');
+    const caseLower = document.getElementById('caseLower');
+    const doHook = document.getElementById('doHook');
+    const doRephrase = document.getElementById('doRephrase');
+    const doCustom = document.getElementById('doCustom');
+    const customNote = document.getElementById('customNote');
+
+    let isLowercase = false;
+    let addHook = false;
+
+    function setCase(lower){
+      isLowercase = !!lower;
+      caseUpper.classList.toggle('active', !isLowercase);
+      caseLower.classList.toggle('active', isLowercase);
+    }
+    setCase(false);
+
+    caseUpper.addEventListener('click', ()=>setCase(false));
+    caseLower.addEventListener('click', ()=>setCase(true));
+
+    doHook.addEventListener('click', ()=> runEdit('hook'));
+
+    function toggleEditMenu(){
+      const open = editMenu.classList.toggle('show');
+      actRephrase.setAttribute('aria-expanded', String(open));
+    }
+    actRephrase.addEventListener('click', (e)=>{ e.stopPropagation(); toggleEditMenu(); });
+    document.addEventListener('click', (e)=>{
+      if(editMenu.classList.contains('show')){
+        const within = editMenu.contains(e.target) || e.target === actRephrase;
+        if(!within) toggleEditMenu();
+      }
+    });
+
+    async function runEdit(mode){
+      const idea = composerInput.value.trim();
+      if(!idea) return;
+      const payload = { text: idea, mode, lowercase: isLowercase, customNote: customNote.value || '' };
+      const data = await apiRewrite(payload);
+      const after = (data && data.after) || '';
+      if(after){ animateApply(after); }
+      else{ showError(true); }
+      editMenu.classList.remove('show');
+      actRephrase.setAttribute('aria-expanded', 'false');
+    }
+
+    doRephrase.addEventListener('click', ()=> runEdit('rephrase'));
+    doCustom.addEventListener('click', ()=> runEdit('custom'));
+
+    // Copy / Apply
+    // no diff actions (removed UI)
+
+
+
+    // Tutorial System
+    function showTutorial(){
+      tutorialActive = true;
+      tutorialOverlay.classList.add('show');
+      updateTutorialStep(1);
+    }
+    
+    function hideTutorial(){
+      tutorialActive = false;
+      tutorialOverlay.classList.remove('show');
+      localStorage.setItem('tj-tutorial-completed', 'true');
+    }
+    
+    function updateTutorialStep(step){
+      currentTutorialStep = step;
+      document.querySelectorAll('.tutorial-step').forEach((el, i) => {
+        el.classList.toggle('active', i === step - 1);
+      });
+      document.querySelectorAll('.progress-dot').forEach((el, i) => {
+        el.classList.toggle('active', i < step);
+      });
+    }
+    
+    function nextTutorialStep(){
+      if(currentTutorialStep < 4) updateTutorialStep(currentTutorialStep + 1);
+    }
+    
+    function prevTutorialStep(){
+      if(currentTutorialStep > 1) updateTutorialStep(currentTutorialStep - 1);
+    }
+    
+    // Tutorial event listeners
+    $('tutorialNext1').addEventListener('click', nextTutorialStep);
+    $('skipTutorial').addEventListener('click', hideTutorial);
+    $('tutorialNext2').addEventListener('click', () => {
+      const handle = tutorialHandleInput.value.trim();
+      if(handle){
+        handleInput.value = handle;
+        handleInput.dispatchEvent(new Event('blur'));
+      }
+      nextTutorialStep();
+    });
+    $('tutorialBack2').addEventListener('click', prevTutorialStep);
+    
+    $('tutorialNext3').addEventListener('click', nextTutorialStep);
+    $('tutorialBack3').addEventListener('click', prevTutorialStep);
+    
+    $('tutorialFinish').addEventListener('click', hideTutorial);
+    $('tutorialBack4').addEventListener('click', prevTutorialStep);
+    
+    // Settings System
+    function showSettings(){
+      settingsHandle.value = handleInput.value || '';
+      settingsModal.classList.add('show');
+    }
+    
+    function hideSettings(){
+      settingsModal.classList.remove('show');
+    }
+    
+    if(settingsBtn) settingsBtn.addEventListener('click', showSettings);
+    if(topSettingsBtn) topSettingsBtn.addEventListener('click', showSettings);
+    settingsCancel.addEventListener('click', hideSettings);
+    settingsSave.addEventListener('click', () => {
+      const handle = settingsHandle.value.trim();
+      if(handle){
+        handleInput.value = handle;
+        handleInput.dispatchEvent(new Event('blur'));
+      }
+      hideSettings();
+      
+    });
+    
+    replayTutorial.addEventListener('click', () => {
+      hideSettings();
+      showTutorial();
+    });
+
+    // Reset tutorial state
+    const resetTutorialBtn = document.getElementById('resetTutorial');
+    if(resetTutorialBtn){
+      resetTutorialBtn.addEventListener('click', () => {
+        try{ localStorage.removeItem('tj-tutorial-completed'); }catch{}
+        hideSettings();
+        showTutorial();
+      });
+    }
+    
+    // Close modals on backdrop click
+    tutorialOverlay.addEventListener('click', (e) => {
+      if(e.target === tutorialOverlay) hideTutorial();
+    });
+    
+    settingsModal.addEventListener('click', (e) => {
+      if(e.target === settingsModal) hideSettings();
+    });
+    
+    // Close modals on Escape
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        if(tutorialActive) hideTutorial();
+        if(settingsModal.classList.contains('show')) hideSettings();
+      }
+    });
+    
+    // Check if first time user
+    function checkFirstTimeUser(){
+      const hasCompletedTutorial = localStorage.getItem('tj-tutorial-completed');
+      if(!hasCompletedTutorial){
+        // Show tutorial after a short delay
+        setTimeout(showTutorial, 800);
+      }
+    }
+
+    // Init
+    // load handle from storage
+    try{
+      const saved = localStorage.getItem('tj-handle');
+      if(saved){
+        handleInput.value = saved;
+        handleInput.dispatchEvent(new Event('blur'));
+      }
+    }catch{}
+    updateCounter();
+    setPresetFromUI();
+    checkFirstTimeUser();
+
+    // Disable actions if >280 initially
+    setActionsEnabled(true);
+
+
+
+    // Keyboard shortcuts (optional niceties)
+    document.addEventListener('keydown', (e)=>{
+      if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='enter'){ composeBtn.click(); }
+    });
+  })();
+  </script>
+</body>
+</html>
