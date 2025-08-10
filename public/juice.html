@@ -114,9 +114,8 @@
     .btn[disabled]{opacity:.5; cursor:not-allowed; transform:none; box-shadow:none}
     .btn.primary{background:var(--black); color:#fff; border-color:var(--black)}
     .btn.secondary{background:#fff; color:var(--black); border-color:var(--black)}
-    /* Edit button hidden until typing */
-    .btn.edit{opacity:0; pointer-events:none; transform:translateY(6px) scale(.98)}
-    .btn.edit.is-visible{opacity:1; pointer-events:auto; transform:none}
+    /* Edit button always visible */
+    .btn.edit{opacity:1; pointer-events:auto; transform:none}
 
     .chip{display:none}
     .counter{font-variant-numeric:tabular-nums; font-weight:600; color:#6b7280; font-size:0.9rem}
@@ -486,12 +485,7 @@
       charCount.classList.toggle('warn', n>260 && n<=280);
       charCount.classList.toggle('bad', n>280);
       setActionsEnabled(n<=280 && !isBusy);
-      // Reveal Edit button if user typed anything
-      const editBtn = document.getElementById('actRephrase');
-      if(editBtn){
-        if(n>0){ editBtn.classList.add('is-visible'); }
-        else{ editBtn.classList.remove('is-visible'); }
-      }
+      // Edit button is always visible now
     }
     composerInput.addEventListener('input', updateCounter);
 
