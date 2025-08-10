@@ -51,7 +51,8 @@ function lowercaseHookVersion(text) {
   return clamp(hook + body);
 }
 
-async function callOpenAIChat(messages, { temperature = 0.7, max_tokens = 220 } = {}) {
+
+async function callOpenAIChat(messages, { max_tokens = 220 } = {}) {
   if (!OPENAI_API_KEY) return null; // signal to mock
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -59,10 +60,13 @@ async function callOpenAIChat(messages, { temperature = 0.7, max_tokens = 220 } 
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: OPENAI_MODEL, messages, temperature, max_completion_tokens: max_tokens }),
+    body: JSON.stringify({ model: OPENAI_MODEL, messages, max_completion_tokens: max_tokens }),
   });
   if (!res.ok) {
-    const txt = await res.text().catch(() => "");
+    let txt = "";
+    try{ txt = await res.text(); }catch{}
+    // Include body we sent for easier debugging in logs
+    console.error("openai request failed", { status: res.status, body: { model: OPENAI_MODEL, max_completion_tokens: max_tokens } });
     throw new Error(`OpenAI error ${res.status}: ${txt}`);
   }
   const data = await res.json();
@@ -161,7 +165,8 @@ app.post("/api/rewrite", aiLimiter, async (req, res) => {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      { temperature: 0.7, max_tokens: 300 }
+
+      { max_tokens: 300 }
     );
 
     let after = "";
@@ -283,7 +288,7 @@ app.post("/api/compose", aiLimiter, async (req, res) => {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      { temperature: 0.8, max_tokens: 300 }
+      { max_tokens: 300 }
     );
 
     let after = "";
@@ -311,4 +316,5 @@ app.listen(PORT, () => {
       ? "🔐 OpenAI key detected: AI endpoints live."
       : "⚠️ No OPENAI_API_KEY set: endpoints will return mock data."
   );
+
 });

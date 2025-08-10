@@ -421,16 +421,6 @@
     const replayTutorial = $('replayTutorial');
     const tutorialOverlay = $('tutorialOverlay');
     const tutorialHandleInput = $('tutorialHandleInput');
-    const diffPane = $('diffPane');
-    const diffBefore = $('diffBefore');
-    const diffAfter = $('diffAfter');
-    const diffHandle1 = $('diffHandle1');
-    const diffHandle2 = $('diffHandle2');
-    const diffAvatar1 = $('diffAvatar1');
-    const diffAvatar2 = $('diffAvatar2');
-    const copyAfter = $('copyAfter');
-    const applyAfter = $('applyAfter');
-
 
     const errorBanner = $('errorBanner');
     const demoModeChip = $('demoModeChip');
@@ -481,10 +471,6 @@
       document.querySelectorAll('[data-avatar]').forEach(img=>img.src=url);
       handleOut.textContent = hasHandle ? hRaw : '';
       handleOutProfile.textContent = hasHandle ? hRaw : '';
-      diffHandle1.textContent = hasHandle ? hRaw : '';
-      diffHandle2.textContent = hasHandle ? hRaw : '';
-      diffAvatar1.src = url;
-      diffAvatar2.src = url;
       // persist handle
       try{
         if(hasHandle){ localStorage.setItem('tj-handle', hRaw); }
@@ -538,6 +524,8 @@
         setBusy(true); showError(false);
         const payload = { text, mode, lowercase, customNote };
         const res = await fetch('/api/rewrite', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+
+        if(!res.ok){ const txt = await res.text().catch(()=>"error"); throw new Error(txt || 'Request failed'); }
         const data = await res.json();
         if(data && data.mock) showDemo(true);
         return data;
@@ -573,9 +561,11 @@
       try{
         setBusy(true);
         const res = await fetch('/api/compose', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic })});
+        if(!res.ok){ const txt = await res.text().catch(()=>"error"); throw new Error(txt || 'Request failed'); }
         const data = await res.json();
         const after = (data && data.after) || '';
         if(after){ animateApply(after); }
+        else{ showError(true); }
       }catch{ showError(true); }
       finally{ setBusy(false); }
     }
@@ -625,6 +615,7 @@
       const data = await apiRewrite(payload);
       const after = (data && data.after) || '';
       if(after){ animateApply(after); }
+      else{ showError(true); }
       editMenu.classList.remove('show');
       actRephrase.setAttribute('aria-expanded', 'false');
     }
@@ -633,16 +624,6 @@
     doCustom.addEventListener('click', ()=> runEdit('custom'));
 
     // Copy / Apply
-    if(copyAfter){
-      copyAfter.addEventListener('click', async ()=>{
-        const text = (diffAfter && diffAfter.textContent) || '';
-        try{ await navigator.clipboard.writeText(text); copyAfter.textContent='Copied!'; setTimeout(()=>copyAfter.textContent='Copy', 1000); }catch{}
-      });
-    }
-    if(applyAfter){
-      applyAfter.addEventListener('click', ()=>{ const t = (diffAfter && diffAfter.textContent)||''; composerInput.value = t; updateCounter(); });
-    }
-
 
 
     // Tutorial System
