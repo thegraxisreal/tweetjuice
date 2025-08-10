@@ -275,11 +275,11 @@
                     <span>Add hook</span>
                     <span class="badge hot">hot</span>
                   </button>
-                </div>
+              </div>
                 <div class="hr"></div>
                 <div class="row">
                   <button type="button" id="doRephrase" class="action" role="menuitem">Rephrase</button>
-                </div>
+                    </div>
                 <div class="row" style="align-items:flex-start; flex-direction:column; gap:8px">
                   <button type="button" id="doCustom" class="action" role="menuitem">Custom</button>
                   <textarea id="customNote" placeholder="What should the AI do?" style="width:100%; min-height:64px; border:1px solid var(--border); border-radius:10px; padding:8px; font:inherit"></textarea>
@@ -422,6 +422,7 @@
     const tutorialOverlay = $('tutorialOverlay');
     const tutorialHandleInput = $('tutorialHandleInput');
 
+
     const errorBanner = $('errorBanner');
     const demoModeChip = $('demoModeChip');
     
@@ -524,7 +525,6 @@
         setBusy(true); showError(false);
         const payload = { text, mode, lowercase, customNote };
         const res = await fetch('/api/rewrite', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-
         if(!res.ok){ const txt = await res.text().catch(()=>"error"); throw new Error(txt || 'Request failed'); }
         const data = await res.json();
         if(data && data.mock) showDemo(true);
@@ -624,6 +624,8 @@
     doCustom.addEventListener('click', ()=> runEdit('custom'));
 
     // Copy / Apply
+    // no diff actions (removed UI)
+
 
 
     // Tutorial System

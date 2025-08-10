@@ -51,7 +51,6 @@ function lowercaseHookVersion(text) {
   return clamp(hook + body);
 }
 
-
 async function callOpenAIChat(messages, { max_tokens = 220 } = {}) {
   if (!OPENAI_API_KEY) return null; // signal to mock
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -165,7 +164,6 @@ app.post("/api/rewrite", aiLimiter, async (req, res) => {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-
       { max_tokens: 300 }
     );
 
@@ -182,7 +180,19 @@ app.post("/api/rewrite", aiLimiter, async (req, res) => {
     res.json({ after });
   } catch (err) {
     console.error("rewrite error:", err);
-    res.status(500).json({ error: "Something went wrong" });
+    // Fallback locally to avoid UX dead-end
+    try {
+      const { text = "", mode = "rephrase", lowercase = false, customNote = "" } = req.body || {};
+      const isLower = !!lowercase;
+      let after = clamp(text);
+      if (mode === "hook") after = clamp(isLower ? lowercaseHookVersion(text) : `Hot take: ${text}`);
+      else if (mode === "rephrase") after = clamp(`we tightened this up: ${text}`);
+      else if (mode === "custom") after = clamp(`${customNote ? customNote + ": " : ""}${text}`);
+      if (isLower) after = String(after).toLowerCase();
+      return res.json({ after, mock: true });
+    } catch {
+      return res.status(500).json({ error: "Something went wrong" });
+    }
   }
 });
 
@@ -235,7 +245,7 @@ app.post("/api/punchline", aiLimiter, async (req, res) => {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      { temperature: 0.8, max_tokens: 120 }
+      { max_tokens: 120 }
     );
 
     let punchline = "";
@@ -304,7 +314,15 @@ app.post("/api/compose", aiLimiter, async (req, res) => {
     res.json({ after });
   } catch (err) {
     console.error("compose error:", err);
-    res.status(500).json({ error: "Something went wrong" });
+    // Fallback to a reasonable mock so UI keeps flowing
+    try {
+      const { topic = "", lowercase = false } = req.body || {};
+      let after = `quick take: ${topic} — here's what matters most`;
+      if (lowercase) after = after.toLowerCase();
+      return res.json({ after: clamp(after), mock: true });
+    } catch {
+      return res.status(500).json({ error: "Something went wrong" });
+    }
   }
 });
 
@@ -316,5 +334,4 @@ app.listen(PORT, () => {
       ? "🔐 OpenAI key detected: AI endpoints live."
       : "⚠️ No OPENAI_API_KEY set: endpoints will return mock data."
   );
-
 });
